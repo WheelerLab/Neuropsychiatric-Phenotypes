@@ -27,6 +27,6 @@ $plink --bfile hg19-updated-chr22 --recode vcf --out hg19-updated-chr22
 Since the .vcf files are large, we want to zip and sort them before we upload them.  The following command will zip and sort them:
 ```{bash}
 ~$vcf-sort hg19-updated-chr22.vcf | bgzip -c > hg19-updated-chr22.vcf.gz
-##Execute this command on each chromsome up and including 22
+##Execute this command on each chromsome up to and including 22
 ~$vcf-sort hg19-updated-chr22.vcf | bgzip -c > hg19-updated-chr22.vcf.gz
 ```
