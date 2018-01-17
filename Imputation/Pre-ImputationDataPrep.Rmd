@@ -1,0 +1,131 @@
+---
+title: "Pre-Imputation Data Prep"
+author: "Peter Fiorica"
+date: "December 5, 2017"
+output: html_document
+---
+```{bash}
+`$plink --bfile /home/peter/Documents/Imputation/preImputation/QCStep2Liftover/hg19 --freq --out newfreq
+```
+The bfiles used above is from earlier in the QC.  There has only been a filter for genotype call rate of applied to it.  The bfiles have been lifted over from HG18 to HG19.
+The command yielded the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to newfreq.log.
+Options in effect:
+  --bfile /home/peter/Documents/Imputation/preImputation/QCStep2Liftover/hg19
+  --freq
+  --out newfreq
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+713071 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998409.
+--freq: Allele frequencies (founders only) written to newfreq.frq .
+
+```
+
+```{bash}
+~$perl HRC-1000G-check-bim.pl -b /home/peter/Documents/Imputation/preImputation/QCStep2Liftover/hg19.bim -f newfreq.frq -r /home/wheelerlab1/Data/preImputation-check/all.caapa.sorted.txt -h
+```
+The command yielded the following output:
+```{bash}
+         Script to check plink .bim files against HRC/1000G for
+        strand, id names, positions, alleles, ref/alt assignment
+                         William Rayner 2015
+                        wrayner@well.ox.ac.uk
+
+                             Version 4.2.3
+
+
+Options Set:
+Reference Panel:             HRC
+Bim filename:                /home/peter/Documents/Imputation/preImputation/QCStep2Liftover/hg19.bim
+Reference filename:          /home/wheelerlab1/Data/preImputation-check/all.caapa.sorted.txt
+Allele frequencies filename: newfreq.frq
+Allele frequency threshold:  0.2
+
+
+Reading /home/wheelerlab1/Data/preImputation-check/all.caapa.sorted.txt
+
+Matching to HRC
+
+Position Matches
+ ID matches HRC 0
+ ID Doesn't match HRC 712932
+ Total Position Matches 712932
+ID Match
+ Different position to HRC 0
+No Match to HRC 137
+Skipped (X, XY, Y, MT) 0
+Total in bim file 713071
+Total processed 713069
+
+Indels (ignored in r1) 0
+
+SNPs not changed 128615
+SNPs to change ref alt 479114
+Strand ok 391153
+Total Strand ok 607729
+
+Strand to change 299857
+Total checked 712932
+Total checked Strand 691010
+Total removed for allele Frequency diff > 0.2 45884
+Palindromic SNPs with Freq > 0.4 15432
+
+
+Non Matching alleles 6490
+ID and allele mismatching 6490; where HRC is . 6486
+Duplicates removed 2
+```
+
+In the above command, we made the file "Run-plink.sh". This file contains every plink command that we need for the next command.
+```{bash}
+~$bash Run-plink.sh
+```
+The command above executes a series of plink commands contained in "Run-plink.sh".  Considering the output for this command will be lengthy because the commands are executed independently on 23 chromosomes, I have not attached it on this document.
+
+From here, we will use the following command on all of the updated chromosome bfiles:
+```{bash}
+$plink --bfile hg19-updated-chr1 --recode vcf --out hg19-updated-chr1
+```
+Consdidering this command will be executed 21 more times, I will not include the output each time; however, the output for chromosome 1 is the following.
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to hg19-updated-chr1.log.
+Options in effect:
+  --bfile hg19-updated-chr1
+  --out hg19-updated-chr1
+  --recode vcf
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+53355 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998433.
+53355 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+--recode vcf to hg19-updated-chr1.vcf ... done.
+```
+
+Since the .vcf files are large, we want to zip and sort them before we upload them.  The following command will zip and sort them:
+```{bash}
+~$vcf-sort hg19-updated-chr22.vcf | bgzip -c > hg19-updated-chr22.vcf.gz
+##Execute this command on each chromsome up to and including 22
+~$vcf-sort hg19-updated-chr22.vcf | bgzip -c > hg19-updated-chr22.vcf.gz
+```
+Everytime the command is executed, a .vcf.gz is created, and the following is displayed in the terminal:
+```{bash}
+sort -k1,1d -k2,2n
+```
+
