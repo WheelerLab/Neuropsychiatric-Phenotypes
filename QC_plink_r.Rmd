@@ -1,0 +1,1054 @@
+---
+title: "QC_AA_GAIN"
+author: "Peter Fiorica"
+date: "10/12/2017"
+output: html_document
+---
+The following is a variation of aandaleon's "01_PlinkQCPipeline.sh". Commands executed in Rstudio will be specified with an R chunk. Assume all other commands were executed in terminal.
+
+QC Step 1:
+```{bash}
+~$plink --bfile /home/peter/Documents/AA_bfiles/Merged_AA_GAIN --missing --out /home/peter/Documents/QC_Steps/QCStep1/QCStep
+```
+The command gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep1/QCStep.log.
+Options in effect:
+  --bfile /home/peter/Documents/AA_bfiles/Merged_AA_GAIN
+  --missing
+  --out /home/peter/Documents/QC_Steps/QCStep1/QCStep
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+845814 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.996009.
+--missing: Sample missing data report written to
+/home/peter/Documents/QC_Steps/QCStep1/QCStep.imiss, and variant-based missing
+data report written to /home/peter/Documents/QC_Steps/QCStep1/QCStep.lmiss.
+```
+
+
+QC Step 2:
+```{bash}
+~$plink --bfile /home/peter/Documents/AA_bfiles/Merged_AA_GAIN --geno 0.01 --make-bed --out /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+```
+This command gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep2/QCStep2.log.
+Options in effect:
+  --bfile /home/peter/Documents/AA_bfiles/Merged_AA_GAIN
+  --geno 0.01
+  --make-bed
+  --out /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+845814 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.996009.
+101873 variants removed due to missing genotype data (--geno).
+743941 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+--make-bed to /home/peter/Documents/QC_Steps/QCStep2/QCStep2.bed +
+/home/peter/Documents/QC_Steps/QCStep2/QCStep2.bim +
+/home/peter/Documents/QC_Steps/QCStep2/QCStep2.fam ... done.
+```
+
+
+QC Step 3:
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --missing --out /home/peter/Documents/QC_Steps/QCStep3/QCStep3
+```
+This command gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep3/QCStep3.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+  --missing
+  --out /home/peter/Documents/QC_Steps/QCStep3/QCStep3
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+743941 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998417.
+--missing: Sample missing data report written to
+/home/peter/Documents/QC_Steps/QCStep3/QCStep3.imiss, and variant-based missing
+data report written to /home/peter/Documents/QC_Steps/QCStep3/QCStep3.lmiss.
+```
+
+
+QC Step 4:
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --hardy --out /home/peter/Documents/QC_Steps/QCStep4/QCStep4
+```
+This command gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep4/QCStep4.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+  --hardy
+  --out /home/peter/Documents/QC_Steps/QCStep4/QCStep4
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+743941 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998417.
+--hardy: Writing Hardy-Weinberg report (founders only) to
+/home/peter/Documents/QC_Steps/QCStep4/QCStep4.hwe ... done.
+```
+
+
+QC Step 5-A:
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --indep-pairwise 50 5 0.3 --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a
+```
+This command gives the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+  --indep-pairwise 50 5 0.3
+  --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+743941 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998417.
+743941 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+Pruned 34326 variants from chromosome 1, leaving 24375.
+Pruned 35973 variants from chromosome 2, leaving 25052.
+Pruned 29251 variants from chromosome 3, leaving 20814.
+Pruned 26275 variants from chromosome 4, leaving 19032.
+Pruned 26789 variants from chromosome 5, leaving 19421.
+Pruned 27060 variants from chromosome 6, leaving 18908.
+Pruned 22177 variants from chromosome 7, leaving 16409.
+Pruned 23390 variants from chromosome 8, leaving 16538.
+Pruned 19584 variants from chromosome 9, leaving 14089.
+Pruned 23210 variants from chromosome 10, leaving 16354.
+Pruned 21621 variants from chromosome 11, leaving 14892.
+Pruned 19838 variants from chromosome 12, leaving 14837.
+Pruned 15906 variants from chromosome 13, leaving 11938.
+Pruned 12890 variants from chromosome 14, leaving 10144.
+Pruned 11600 variants from chromosome 15, leaving 10008.
+Pruned 12545 variants from chromosome 16, leaving 10436.
+Pruned 8707 variants from chromosome 17, leaving 8447.
+Pruned 12057 variants from chromosome 18, leaving 9711.
+Pruned 4723 variants from chromosome 19, leaving 5080.
+Pruned 10531 variants from chromosome 20, leaving 8528.
+Pruned 5498 variants from chromosome 21, leaving 4780.
+Pruned 4758 variants from chromosome 22, leaving 4701.
+Pruned 20540 variants from chromosome 23, leaving 9953.
+Pruned 144 variants from chromosome 24, leaving 18.
+Pruned 0 variants from chromosome 25, leaving 9.
+Pruned 47 variants from chromosome 26, leaving 27.
+Pruning complete.  429440 of 743941 variants removed.
+Marker lists written to
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in and
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.out .
+```
+
+
+QC Step 5-B:
+```{bash}
+##In the final GWAS QC, this command was not executed as is.
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --extract /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in --genome --min 0.25 --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QCStep5b
+```
+This command gives the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QC5b.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+  --extract /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in
+  --genome
+  --min 0.25
+  --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QCStep5b
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+743941 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+--extract: 314501 variants remaining.
+Using up to 11 threads (change this with --threads).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998345.
+314501 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+Excluding 9998 variants on non-autosomes from IBD calculation.
+IBD calculations complete.  
+Finished writing
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QCStep5b.genome .
+```
+
+Complete the commands as follows in Rstudio as designated from the R chunk.  I followed the pipelines of Dr. Wheeler and Mohammed(https://github.com/WheelerLab/GWAS_QC/blob/master/example_pipelines/TCS_GWAS_QC/03_GWAS_QC_plots.Rmd) (https://github.com/WheelerLab/Prostate-Cancer-Study/blob/master/03_GWAS_QCPLOTS_AA.sh)
+The following commands will give us a better understanding of the SNP call rates for the data:
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+"%&%"=function(a,b) paste(a,b,sep="")
+my.dir="/home/peter/Documents/QC_Steps/"
+lmiss<fread(my.dir %&% "QCStep1/QCStep.lmiss",header=T)
+hist(lmiss$F_MISS)
+dim(lmiss)[1]
+##This tells us the initial number of SNPs we will be working with to start.
+table(lmiss$F_MISS<0.01)
+##This tells us the number of SNPs with a call rate greater than 99%. In this case about 740000 meet that call rate.
+table(lmiss$F_MISS<0.01)/sum(table(lmiss$F_MISS<0.01))
+##From this, we can see that about 88% of the SNPs have a call rate >99%.  This value seems rather low. 
+table(lmiss$F_MISS<0.02)/sum(table(lmiss$F_MISS<0.02))
+#If we set the threshold at 98%, 94.6% of the SNPs have a call rate >98%
+imiss<-fread(my.dir %&% "QCStep3/QCStep3.imiss",header=T)
+hist(imiss$F_MISS)
+##Individual count in 2136.  The value is the same as the value with which we started
+newlmiss<-fread(my.dir %&% "QCStep3/QCStep3.lmiss",header=T)
+hist(newlmiss$F_MISS)
+dim(newlmiss)[1]
+##SNP count is 743941
+```
+
+
+The following commands will give us a better understanding of the indentity by descent(IBD) of the individuals in the cohort:
+```{r}
+IBD<-fread(my.dir %&% "QCStep5/QCStep5B/QCStep5b.genome",header=T)
+ggplot(data=IBD,aes(x=Z0,y=Z1))+geom_point(alpha=1/4)+theme_bw()
+##Hmm, nothing on the plot right now
+##When looking at the differences in the pipelines, I noticed that there was a variation in the minimum entire in plink step 5b.  I initially used .25 as stated on aandaleon's pipeline. She states, "0.25 was used as the threshold due to the high degree of relatedness within the cohort."
+##I will try using the .125 value that mabdsulami used.
+```
+
+Repeating Step 5B of QC to explore why there are no values with "/path/QCStep5/QCStep5B/QCStep5b.genome"
+```{bash}
+##In the final GWAS QC, this command was not executed as is.
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --extract /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in --genome --min 0.125 --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QC5b
+```
+The command above yielded the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QC5b.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+  --extract /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in
+  --genome
+  --min 0.125
+  --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QC5b
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+743941 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+--extract: 314501 variants remaining.
+Using up to 11 threads (change this with --threads).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998345.
+314501 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+Excluding 9998 variants on non-autosomes from IBD calculation.
+IBD calculations complete.
+```
+The file appears to contain only 58 objects of the 14 variables.  This may be problematic considering that Mohammed's contained 416111 objects of 14 variables.  We can plot it and see what happens.
+```{r}
+ggplot(data=ibd,aes(x=Z0,y=Z1))+geom_point(alpha=1/4)+theme_bw()
+##These data, as they are, do not give us insight into the relatedness of the data.  We will try executing the command without a "--min" option
+```
+
+
+QC Step 5-B(Attempt III)
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --extract /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in --genome --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QCstep5B
+```
+
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QCstep5B.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+  --extract /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in
+  --genome
+  --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QCstep5B
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+743941 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+--extract: 314501 variants remaining.
+Using up to 11 threads (change this with --threads).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998345.
+314501 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+Excluding 9998 variants on non-autosomes from IBD calculation.
+IBD calculations complete.
+Finished writing
+```
+
+```{r}
+ibd<-fread(my.dir %&% "QCStep5/QCStep5B/QCstep5B.genome",header=T)
+ggplot(data = ibd, aes(x=Z0,y=Z1))+geom_point(alpha=1/4)+theme_bw()
+##Now we can check for duplicates in the data
+dups<-data.frame()
+for( i in 1:dim(ibd)[1]){
+  if(as.character(ibd$IID1[i])==as.character(ibd$IID2[i])){
+    dups<-rbind(dups,ibd[i,])
+  }
+}
+dim(dups)
+##It looks like we do not have any duplicates
+hapmap<-filter(ibd,grepl('NA',IID1))
+dim(hapmap)
+##Looks like there is nothing in 'hapmap'
+dim(others)
+##That took a while, but it looks like every SNP is in "others"
+hist(others$PI_HAT)
+sortOthers<-others[order(others$PI_HAT,decreasing = TRUE),]
+filter(others,PI_HAT>=.2)
+##The error Empty data.table (0 rows) of 14 cols: FID1,IID1,FID2,IID2,RT,EZ...
+##When looking at the histogram, it is clear that there are no SNPs with PI_HAT values >= 0.2
+```
+
+
+HWE Statistics
+```{r}
+hwe<-fread(my.dir %&% "QCStep4/QCStep4.hwe",header=T)
+summary(hwe$P)
+hist(hwe$P)
+table(hwe$P<1e-06)
+table(hwe$P<1e-06)/sum(table(hwe$P<1e-06))
+```
+
+
+QC Step 5-C
+```{bash}
+~$plink --bfile /home/peter/Documents/QCSteps/QCStep2/QCStep2 --het --out /home/peter/Documents/QCSteps/QCStep5/QCStep5C/QCStep5c
+```
+The command above gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep5/QCStep5C/QCStep5c.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+  --het
+  --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5C/QCStep5c
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+743941 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998417.
+743941 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+--het: 713212 variants scanned, report written to
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5C/QCStep5c.het .
+```
+
+
+QC Step 5-D
+```{bash}
+~$plink --bfile/home/peter/Documents/QC_Steps/QCStep2/QCStep2 --extract --home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a --make-bed --out /home/peter/Documents/QC_Steps/QCStep5D/QCStep5d
+```
+The command gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+  --extract /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in
+  --make-bed
+  --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+743941 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+--extract: 314501 variants remaining.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998345.
+314501 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+--make-bed to /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d.bed +
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d.bim +
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d.fam ... done.
+```
+
+
+QC Step 5-E
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d --het --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5E/QCStep5e
+```
+The command gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep5/QCStep5E/QCStep5e.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d
+  --het
+  --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5E/QCStep5e
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+314501 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2112 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998345.
+314501 variants and 2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+--het: 304503 variants scanned, report written to
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5E/QCStep5e.het .
+```
+
+
+Check for Heterozygosity, flag any outliers for removal
+```{r}
+hetfile<-"QCStep5/QCStep5C/QCStep5c.het"
+HET<-read.table(my.dir %&% hetfile,header=T, as.is=T)
+h=(HET$N.NM.-HET$O.HOM.)/HET$N.NM.
+oldpar=par(mfrow=c(1,2))
+hist(h,50)
+hist(HET$F,50)
+summary(HET$F)
+par(oldpar)
+sortHET<-HET[order(HET$F),]
+View(sortHET)
+outliers<-data.frame()
+for(i in 1:length(sortHET$F)){
+   if(sortHET[i,6]>(mean(sortHET$F)+3*sd(sortHET$F))){
+     outliers<-rbind(outliers,sortHET[i,])
+     }    
+     if(sortHET[i,6]<(mean(sortHET$F)-3*sd(sortHET$F))){
+         outliers<-rbind(outliers,sortHET[i,])
+     }
+}
+hetoutliers<-select(outliers,FID,IID)
+dim(hetoutliers)
+##We are working we 32 outliers here.  This seems like a high number with respect to the 2136 with which we started.
+allexclude2<-hetoutliers
+write.table(allexclude2,file="/home/peter/Documents/QC_Steps/QCStep5/QCStep5C/QCStep5c.txt",quote=F,col.names = F,row.names = F)
+#The command above generated a list of outliers by FID and IID
+dim(imiss)[1]-dim(hetoutliers)[1]
+##Since we removed 32 individuals, we are left with 2104 total individuals remaining
+```
+
+
+QC Step 5-F:
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d --remove /home/peter/Documents/QC_Steps/QCStep5/QCStep5C/QCStep5c.txt --make-bed --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f
+```
+We removed the heterozygosity outliers with this command and got the following output in terminal:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d
+  --make-bed
+  --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f
+  --remove /home/peter/Documents/QC_Steps/QCStep5/QCStep5C/QCStep5c.txt
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+314501 variants loaded from .bim file.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+--remove: 2107 people remaining.
+Warning: At least 3 duplicate IDs in --remove file.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2083 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate in remaining samples is 0.998356.
+314501 variants and 2107 people pass filters and QC.
+Among remaining phenotypes, 1174 are cases and 933 are controls.
+--make-bed to /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f.bed +
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f.bim +
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f.fam ... done.
+```
+
+Pre-PCA Human Genome Build Check
+    Before PCA/imputation, we need to know what the human genome build of our data.  The two possibilities for datasets in WheelerLab are HG18 or HG19.  We can check which one our data is by looking up SNPs in UCSC's Genome Browser Gateway(https://genome.ucsc.edu/cgi-bin/hgGateway).
+    If the the browser confirms a bp position on the correct chromosome under HG18, then our data is HG18.  If it does this under, HG19 then, we are working with data in HG19.
+    After looking up three SNPs, all of them appeared under HG18.  None of under HG19.
+    We are working with data in HG18. Data needs to be in HG19 for imputation, so we have to do a liftover.
+
+
+From here we will complete a liftover from the python script "LiftMap.py":
+    To do this, we copied the entire python script into a textfile and executed the commands as followed
+```{bash}
+~$nano newfile
+##From here, we pasted the "LiftMap.py" script from the Michigan website into the file.
+##Make the following changes to the script:
+  ##['LIFTOVERBIN']='/usr/local/bin/liftOver
+  ##['CHAIN']='/home/wheelerlab1/Data/liftOver_files/hg18ToHg19.over.chain.gz'
+~$nano LiftMap.py
+##Repeat the same step from above
+  ##['LIFTOVERBIN']='/usr/local/bin/liftOver
+  ##['CHAIN']='/home/wheelerlab1/Data/liftOver_files/hg18ToHg19.over.chain.gz'
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f --recode --out /home/peter/Documents/QCSteps/LiftOver/newfile
+```
+The plink command gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/LiftOver/newfile.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f
+  --out /home/peter/Documents/QC_Steps/LiftOver/newfile
+  --recode
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+314501 variants loaded from .bim file.
+2107 people (1084 males, 1023 females) loaded from .fam.
+2107 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2083 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998356.
+314501 variants and 2107 people pass filters and QC.
+Among remaining phenotypes, 1174 are cases and 933 are controls.
+--recode ped to /home/peter/Documents/QC_Steps/LiftOver/newfile.ped +
+/home/peter/Documents/QC_Steps/LiftOver/newfile.map ... done.
+```
+Now we will execute a python script in terminal with the following command:
+```{bash}
+ ~$python LiftMap.py -m /home/peter/Documents/QC_Steps/LiftOver/newfile.map -p /home/peter/Documents/QC_Steps/LiftOver/newfile.ped -o new
+```
+This gave the output in terminal as:
+```{bash}
+SUCC:  map->bed succ
+Reading liftover chains
+Mapping coordinates
+SUCC:  liftBed succ
+SUCC:  bed->map succ
+SUCC:  liftPed succ
+```
+
+```{bash}
+~$plink--file /home/peter/Documents/QC_Steps/LiftOver/new --make-bed --out hg19
+```
+This gave the following output in terminal:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to hg19.log.
+Options in effect:
+  --file /home/peter/Documents/QC_Steps/LiftOver/new
+  --make-bed
+  --out hg19
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+.ped scan complete (for binary autoconversion).
+Performing single-pass .bed write (304427 variants, 2107 people).
+--file: hg19-temporary.bed + hg19-temporary.bim + hg19-temporary.fam written.
+304427 variants loaded from .bim file.
+2107 people (1084 males, 1023 females) loaded from .fam.
+2107 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2083 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.998348.
+304427 variants and 2107 people pass filters and QC.
+Among remaining phenotypes, 1174 are cases and 933 are controls.
+--make-bed to hg19.bed + hg19.bim + hg19.fam ... done.
+```
+
+
+From the step above until the end of the .Rmd, the QC gets messy because of the way the SNPs were reported.  Since the genotyping array was completed on an Affymetrix 6.0 framework, the SNPs were reported as SNP-A_###.  The HapMap data with which we need to merge our data, is lists the SNPs by rs ID.  We needed to change the SNP names from SNP-A_ to rs# by going back to the original dbGaP file.  From here we used the corresponding rs# to match each SNP to make a new .bim file.
+
+Once, the SNP names were changed, the QC proceeded as follows.
+QC Step 6-A
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19 --bmerge /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.bed /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.bim /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.fam --make-bed --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6A/QCStep6a
+```
+The step above attempted our data that was moved into hg19 format with the data of HapMap individuals.  It yielded the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep6/QCStep6A/QCStep6a.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19
+  --bmerge /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.bed /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.bim /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.fam
+  --make-bed
+  --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6A/QCStep6a
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+2107 people loaded from
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19.fam.
+391 people to be merged from
+/home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.fam.
+Of these, 391 are new, while 0 are present in the base dataset.
+304427 markers loaded from
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19.bim.
+1447224 markers to be merged from
+/home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.bim.
+Of these, 1447218 are new, while 6 are present in the base dataset.
+Error: 3 variants with 3+ alleles present.
+* If you believe this is due to strand inconsistency, try --flip with
+  /home/peter/Documents/QC_Steps/QCStep6/QCStep6A/QCStep6a-merge.missnp.
+  (Warning: if this seems to work, strand errors involving SNPs with A/T or C/G
+  alleles probably remain in your data.  If LD between nearby SNPs is high,
+  --flip-scan should detect them.)
+* If you are dealing with genuine multiallelic variants, we recommend exporting
+  that subset of the data to VCF (via e.g. '--recode vcf'), merging with
+  another tool/script, and then importing the result; PLINK is not yet suited
+  to handling them.
+```
+Since there are variants reported with more than two alleles in the data, they need to be exclude from the merge files.  These variants are listed in the .missnp file.
+
+
+QC Step 6-B
+```{bash}
+~$plink --bfile /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig --exclude /home/peter/Documents/QC_Steps/QCStep6/QCStep6A/QCStep6a-merge.missnp --make-bed --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b
+```
+We just made a new hap map file without the variants with more than two alleles to be merged in the next step with our data.  The command above gave the following output:
+
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.log.
+Options in effect:
+  --bfile /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig
+  --exclude /home/peter/Documents/QC_Steps/QCStep6/QCStep6A/QCStep6a-merge.missnp
+  --make-bed
+  --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+1447224 variants loaded from .bim file.
+391 people (197 males, 194 females) loaded from .fam.
+391 phenotype values loaded from .fam.
+--exclude: 1447221 variants remaining.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 391 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.853208.
+1447221 variants and 391 people pass filters and QC.
+Among remaining phenotypes, 0 are cases and 391 are controls.
+--make-bed to /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bed +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bim +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.fam ... done.
+```
+
+
+QC Step 6-C
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19 --bmerge /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bed /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bim /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.fam --make-bed --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c
+```
+This command gave us the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19
+  --bmerge /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bed /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bim /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.fam
+  --make-bed
+  --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+2107 people loaded from
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19.fam.
+391 people to be merged from
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.fam.
+Of these, 391 are new, while 0 are present in the base dataset.
+304427 markers loaded from
+/home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19.bim.
+1447221 markers to be merged from
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bim.
+Of these, 1447218 are new, while 3 are present in the base dataset.
+Warning: Variants 'rs12082473' and 'SNP_A-8497791' have the same position.
+Warning: Variants 'rs11240776' and 'SNP_A-8329892' have the same position.
+Warning: Variants 'rs2905036' and 'SNP_A-2236359' have the same position.
+260785 more same-position warnings: see log file.
+Performing single-pass merge (2498 people, 1751645 variants).
+Merged fileset written to                     
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c-merge.bed +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c-merge.bim +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c-merge.fam .
+1751645 variants loaded from .bim file.
+2498 people (1281 males, 1217 females) loaded from .fam.
+2498 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2474 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.256688.
+1751645 variants and 2498 people pass filters and QC.
+Among remaining phenotypes, 1174 are cases and 1324 are controls.
+--make-bed to /home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c.bed +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c.bim +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c.fam ... done.
+```
+
+
+QC Step 6-D
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c --geno 0.2 --maf 0.05 --make-bed --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d
+```
+We filtered the merged file by genotyping rate and minor allele frequency.  The command gave us the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c
+  --geno 0.2
+  --maf 0.05
+  --make-bed
+  --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+1751645 variants loaded from .bim file.
+2498 people (1281 males, 1217 females) loaded from .fam.
+2498 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2474 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.256688.
+1447218 variants removed due to missing genotype data (--geno).
+43683 variants removed due to minor allele threshold(s)
+(--maf/--max-maf/--mac/--max-mac).
+260744 variants and 2498 people pass filters and QC.
+Among remaining phenotypes, 1174 are cases and 1324 are controls.
+--make-bed to /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d.bed +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d.bim +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d.fam ... done.
+```
+A lot (almost 1.5 million) of the variants were removed because of missing genotyping data.
+
+
+QC Step 6-E
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d --indep-pairwise 50 5 0.3 --recode --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e
+```
+The command gave the following output:
+```{bash}
+PLINK v1.90b4.3 64-bit (9 May 2017)            www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.log.
+Options in effect:
+  --bfile /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d
+  --indep-pairwise 50 5 0.3
+  --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e
+  --recode
+
+64070 MB RAM detected; reserving 32035 MB for main workspace.
+260744 variants loaded from .bim file.
+2498 people (1281 males, 1217 females) loaded from .fam.
+2498 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2474 founders and 24 nonfounders present.
+Calculating allele frequencies... done.
+Total genotyping rate is 0.842068.
+260744 variants and 2498 people pass filters and QC.
+Among remaining phenotypes, 1174 are cases and 1324 are controls.
+--recode ped to /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.ped +
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.map ... done.
+Pruned 88 variants from chromosome 1, leaving 20676.
+Pruned 83 variants from chromosome 2, leaving 21445.
+Pruned 76 variants from chromosome 3, leaving 17773.
+Pruned 50 variants from chromosome 4, leaving 16385.
+Pruned 56 variants from chromosome 5, leaving 16481.
+Pruned 79 variants from chromosome 6, leaving 15970.
+Pruned 74 variants from chromosome 7, leaving 13998.
+Pruned 55 variants from chromosome 8, leaving 14103.
+Pruned 60 variants from chromosome 9, leaving 11907.
+Pruned 61 variants from chromosome 10, leaving 13784.
+Pruned 71 variants from chromosome 11, leaving 12639.
+Pruned 48 variants from chromosome 12, leaving 12526.
+Pruned 37 variants from chromosome 13, leaving 10084.
+Pruned 33 variants from chromosome 14, leaving 8696.
+Pruned 32 variants from chromosome 15, leaving 8644.
+Pruned 32 variants from chromosome 16, leaving 9052.
+Pruned 27 variants from chromosome 17, leaving 7298.
+Pruned 23 variants from chromosome 18, leaving 8400.
+Pruned 11 variants from chromosome 19, leaving 4426.
+Pruned 22 variants from chromosome 20, leaving 7271.
+Pruned 18 variants from chromosome 21, leaving 4145.
+Pruned 16 variants from chromosome 22, leaving 3989.
+Pruning complete.  1052 of 260744 variants removed.
+Marker lists written to
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.prune.in and
+/home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.prune.out .
+```
+
+
+QC Step 6-F
+```{bash}
+~$awk '{print $1,$2,$3,$4,$5,1}' /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d.fam > /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.fam
+```
+
+
+QC Step 6-G
+```{bash}
+~$perl /home/wheelerlab1/Data/GWAS_QC_scripts/make_par_file.pl /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e 0 >/home/peter/Documents/QC_Steps/QCStep6/QCStep6F/QCStep6f.par
+```
+
+
+QC Step 6-H
+```{bash}
+~$smartpca -p /home/peter/Documents/QC_Steps/QCStep6/QCStep6F/QCStep6f.par
+```
+The command yielded the following output:
+```{bash}
+parameter file: /home/peter/Documents/QC_Steps/QCStep6/QCStep6F/QCStep6f.par
+### THE INPUT PARAMETERS
+##PARAMETER NAME: VALUE
+genotypename: /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.ped
+snpname: /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.map
+indivname: /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.fam
+evecoutname: /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.evec
+evaloutname: /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.eval
+outliername: /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.outlier
+numoutevec: 10
+numoutlieriter: 0
+numoutlierevec: 2
+outliersigmathresh: 6
+## smartpca version: 13050
+norm used
+
+genetic distance set from physical distance
+genotype file processed
+number of samples used: 2498 number of snps used: 260744
+Using 11 threads, and partial sum lookup algorithm.
+total number of snps killed in pass: 0  used: 260744
+
+## Tracy-Widom statistics: rows: 2498  cols: 260744
+ #N    eigenvalue  difference    twstat      p-value effect. n
+   1     16.367978          NA  4066.458            0 19118.444
+   2      2.549357  -13.818621   559.675            0 64290.402
+   3      2.493723   -0.055634   534.677            0 65443.808
+   4      2.451118   -0.042604   516.655            0 66540.620
+   5      2.394208   -0.056910   488.645            0 67600.628
+   6      2.362029   -0.032179   475.340            0 68594.378
+   7      2.352893   -0.009136   476.408            0 69563.387
+   8      2.301765   -0.051128   449.951            0 70548.113
+   9      2.268908   -0.032857   434.551            0 71469.956
+  10      2.264324   -0.004584   437.388            0 72359.758
+##(n)
+population:   0              Control 2498
+eigbestsnp    1        SNP_A-8308959  1    159062436     4.599
+eigbestsnp    1        SNP_A-4298368  2    227589780     4.357
+eigbestsnp    1        SNP_A-8514819  2    189883644     4.201
+eigbestsnp    1        SNP_A-8380438  1    116750625     4.072
+eigbestsnp    1        SNP_A-8673246  5     36666071     4.043
+eigbestsnp    1        SNP_A-2074583  2    190497896     4.028
+eigbestsnp    1        SNP_A-2184317 13    106155326     3.980
+eigbestsnp    1        SNP_A-1824328 16     22377003     3.900
+eigbestsnp    1        SNP_A-8480260  1    162862846     3.891
+eigbestsnp    1        SNP_A-8690633  6    132697582     3.888
+eigbestsnp    2        SNP_A-2042746  2    136808949    11.424
+eigbestsnp    2        SNP_A-1878283  2    131913894    10.751
+eigbestsnp    2        SNP_A-2269486  2    137388443    10.542
+eigbestsnp    2        SNP_A-1856614  2    123489337    10.107
+eigbestsnp    2        SNP_A-4269032  2    129888877     9.972
+eigbestsnp    2        SNP_A-8345419  2    122566622     9.914
+eigbestsnp    2        SNP_A-8576145  2    137801299     9.910
+eigbestsnp    2        SNP_A-1895029  2    121536726     9.856
+eigbestsnp    2        SNP_A-4284654  2    128755794     9.819
+eigbestsnp    2        SNP_A-4252480  2    137043076     9.773
+eigbestsnp    3        SNP_A-8563123 11     64539635     9.044
+eigbestsnp    3        SNP_A-2162496 11     60842234     8.932
+eigbestsnp    3        SNP_A-2150157 11     78632509     8.927
+eigbestsnp    3        SNP_A-8384202 11     39930309     8.627
+eigbestsnp    3        SNP_A-8704571 11     67288594     8.278
+eigbestsnp    3        SNP_A-8337125 11     42284465     8.162
+eigbestsnp    3        SNP_A-4271268 11     61880258     7.848
+eigbestsnp    3        SNP_A-8593745 11     78709918     7.844
+eigbestsnp    3        SNP_A-8441495 11     46146855     7.762
+eigbestsnp    3        SNP_A-8383897 11     72935825     7.681
+eigbestsnp    4        SNP_A-8390253 10     29173102     8.919
+eigbestsnp    4        SNP_A-2296486 10     32029764     8.809
+eigbestsnp    4        SNP_A-1865300  8     81469704     8.782
+eigbestsnp    4        SNP_A-8677562 10     50821191     8.573
+eigbestsnp    4        SNP_A-4251031 10     50436863     8.524
+eigbestsnp    4        SNP_A-4291775 10     35222113     8.295
+eigbestsnp    4        SNP_A-8480196 10     31897318     8.207
+eigbestsnp    4        SNP_A-8412772 10     54240712     8.070
+eigbestsnp    4        SNP_A-2000402 10     48631327     7.902
+eigbestsnp    4        SNP_A-8282037  8     79497899     7.857
+eigbestsnp    5        SNP_A-2250807  6     84493350     8.821
+eigbestsnp    5        SNP_A-8549646  6    105618468     8.658
+eigbestsnp    5        SNP_A-2126781  6     64752796     8.598
+eigbestsnp    5        SNP_A-1986363  6     70705112     8.212
+eigbestsnp    5        SNP_A-8677479  6     53004757     8.147
+eigbestsnp    5        SNP_A-2062241  6     73881323     8.101
+eigbestsnp    5        SNP_A-8645801  6     71195442     8.095
+eigbestsnp    5        SNP_A-8690633  6    132697582     8.045
+eigbestsnp    5        SNP_A-8483555  6    108331294     8.032
+eigbestsnp    5        SNP_A-1961264  6    132250141     7.859
+eigbestsnp    6        SNP_A-8403348 10     45552577     7.168
+eigbestsnp    6        SNP_A-2265770 10     43143078     6.938
+eigbestsnp    6        SNP_A-4251031 10     50436863     6.797
+eigbestsnp    6        SNP_A-1973830  3    107714075     6.624
+eigbestsnp    6        SNP_A-8390253 10     29173102     6.616
+eigbestsnp    6        SNP_A-8700753  3    122756601     6.611
+eigbestsnp    6        SNP_A-2067118  1     74345462     6.596
+eigbestsnp    6        SNP_A-8619067  3    103257143     6.587
+eigbestsnp    6        SNP_A-1973926  3    111269236     6.509
+eigbestsnp    6        SNP_A-1999875 10     35773309     6.488
+eigbestsnp    7        SNP_A-8597028  1    107171134     7.847
+eigbestsnp    7        SNP_A-8527720  1    105436486     7.677
+eigbestsnp    7        SNP_A-8444556  1     61442276     7.653
+eigbestsnp    7        SNP_A-8308959  1    159062436     7.616
+eigbestsnp    7        SNP_A-8520735  1    110078434     7.388
+eigbestsnp    7        SNP_A-8714040  1    112805968     7.325
+eigbestsnp    7        SNP_A-2105912  1     68448753     7.211
+eigbestsnp    7        SNP_A-8487737  1     71101084     7.199
+eigbestsnp    7        SNP_A-4230325  1    103040474     7.138
+eigbestsnp    7        SNP_A-2214317  1     56972400     6.964
+eigbestsnp    8        SNP_A-4239021  7     87082292     6.523
+eigbestsnp    8        SNP_A-1784412  7     68860360     6.501
+eigbestsnp    8        SNP_A-8605061  7     26657771     6.396
+eigbestsnp    8        SNP_A-8334352  7     26120809     6.346
+eigbestsnp    8        SNP_A-8387578  6     72286838     6.301
+eigbestsnp    8        SNP_A-2232178  7     93444215     6.290
+eigbestsnp    8        SNP_A-8418063  6     90845036     6.209
+eigbestsnp    8        SNP_A-8513384  7     65269823     6.185
+eigbestsnp    8        SNP_A-1999875 10     35773309     6.037
+eigbestsnp    8        SNP_A-2101995  7     79252811     5.802
+eigbestsnp    9        SNP_A-8291372 16     76521236     7.739
+eigbestsnp    9        SNP_A-8633559 16     69224615     7.519
+eigbestsnp    9        SNP_A-8531998 16     68099946     7.445
+eigbestsnp    9        SNP_A-8585123 16     67316600     7.323
+eigbestsnp    9        SNP_A-8462067 16     57682505     7.288
+eigbestsnp    9        SNP_A-2099085  4     85090749     7.240
+eigbestsnp    9        SNP_A-8688851 16     78678820     7.208
+eigbestsnp    9        SNP_A-8402647 16     70637616     7.154
+eigbestsnp    9        SNP_A-1787783 16     58219283     6.972
+eigbestsnp    9        SNP_A-2067207 16     63558061     6.972
+eigbestsnp   10        SNP_A-2074583  2    190497896     7.983
+eigbestsnp   10        SNP_A-8514819  2    189883644     7.542
+eigbestsnp   10        SNP_A-8293601  2    208120208     6.994
+eigbestsnp   10        SNP_A-8452411  2    169459373     6.569
+eigbestsnp   10        SNP_A-8436028  2    198077877     6.530
+eigbestsnp   10        SNP_A-8312528  2    192115052     6.493
+eigbestsnp   10        SNP_A-2259161  2    167725126     6.467
+eigbestsnp   10        SNP_A-4262412  2    179097232     6.446
+eigbestsnp   10        SNP_A-8296847  2    192525536     6.425
+eigbestsnp   10        SNP_A-2006910  2    190744738     6.401
+##end of smartpca run
+```
+
+
+Before continuing to the plots, read to the end of the document first.
+
+QC Step 6-I:
+The intended purpose of this step is to remove related SNPs in the file that may be created in Step 5D; however, we did not create this file.  For out intents and purposes, we will use out QCStep2 bfiles for QCStep6-J.
+Before we begin step 6-J, we will plot the PCA Plots with HapMap3 unrelated.
+
+
+PCA Plotting:
+```{r}
+pca.dir<-"/home/peter/Documents/QC_Steps/"
+hapmappopinfo<-read.table("/home/wheelerlab1/Data/HAPMAP3_hg19/pop_HM3_hg19_forPCA.txt") %>% select(V1,V3)
+colnames(hapmappopinfo)<-c("pop","IID")
+fam<-read.table(pca.dir %&% "QCStep6/QCStep6E/QCStep6e.fam") %>% select(V1,V2)
+colnames(fam)<-c("FID","IID")
+popinfo <- left_join(fam,hapmappopinfo,by="IID")
+popinfo <- mutate(popinfo, pop=ifelse(is.na(pop),'GWAS', as.character(pop)))
+table(popinfo$pop)
+pcs<-read.table(pca.dir %&% "QCStep6/QCStep6E/QCStep6e.evec",skip=1)
+pcdf <- data.frame(popinfo, pcs[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwas <- filter(pcdf,pop=='GWAS')
+hm3 <- filter(pcdf, grepl('NA',IID))
+eval<-scan(pca.dir %&% "QCStep6/QCStep6E/QCStep6e.eval")[1:10]
+round(eval/sum(eval),3)
+
+##PCA Plot 1
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data = hm3,aes(x=PC1,y=PC2,col=pop,shape=pop))+theme_bw() +scale_colour_brewer(palette ="Set1")
+
+##PCA Plot 2
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+##PCA Plot 3
+ggplot() + geom_point(data=gwas,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+##PCA Plot 4
+yri <- filter(pcdf,pop=='YRI')
+uPC1 <- mean(yri$PC1) + 5*sd(yri$PC1)
+lPC1 <- mean(yri$PC1) - 5*sd(yri$PC1)
+uPC2 <- mean(yri$PC2) + 5*sd(yri$PC2)
+lPC2 <- mean(yri$PC2) - 5*sd(yri$PC2)
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() +geom_vline(xintercept=c(uPC1,lPC1)) +geom_hline(yintercept=c(uPC2,lPC2))
+```
+
+##Notes on initial PCA errors:
+After the first two plots, I assumed there was an issue because typically PCA plots are clustered by population; however, these plots have the CEUs, YRIs, and ASNs all at the origin.  An error occured somewhere in this process. These plots are not shown in the knitted document.
+When I traced the R pipeline, I found that the pcdf data frame has 0.00 for all of the hapmap individual PCs.This explains why the points are plotted at the origin, but these individuals should not have 0.00 for their PC values.
+When I re-executed the SmartPCA step (6-H), I found that only the individuals from my schizophrenia data went through PCA. Dr. Wheeler recommended that I return back to step 6-D and lower the `--geno` restriction from 0.2 to 0.01.
+
+Before I go forward with that, I am going to check to see if I can even do PCA with the HapMap data alone:
+(Re-executing QC Step 6 without the merge)
+```{bash}
+plink --bfile /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b --geno 0.01 --maf 0.05 --make-bed /home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6D
+
+plink --bfile /home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6D --indep-pairwise 50 5 0.3 --recode --out /home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6E
+
+awk '{print $1,$2,$3,$4,$5,1}' /home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6D.fam > /home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6E.fam
+
+perl /home/wheelerlab1/Data/GWAS_QC_scripts/make_par_file.pl /home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6E 0 > /home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6F.par
+
+smartpca -p /home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6F.par 
+```
+It looks like pca ran on the hapmap when I used only the hapmap individuals.  I'll plot the data and see what we get.
+
+```{r}
+fam_redo<-read.table("/home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6E.fam") %>% select(V1,V2)
+colnames(fam_redo)<-c("FID","IID")
+popinfo_redo <- left_join(fam_redo,hapmappopinfo,by="IID")
+popinfo_redo <- mutate(popinfo_redo, pop=ifelse(is.na(pop),'GWAS', as.character(pop)))
+table(popinfo_redo$pop)
+pcdf_redo <- data.frame(popinfo_redo, pcs_redo[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+hm3_redo <- filter(pcdf_redo, grepl('NA',IID))
+eval_redo<-scan("/home/peter/Documents/QC_Steps/QCStep6/QC_Redo_HapMap/redo6E.eval")[1:10]
+round(eval_redo/sum(eval_redo),3)
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data = hm3_redo,aes(x=PC1,y=PC2,col=pop,shape=pop))+theme_bw() +scale_colour_brewer(palette ="Set1")
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3_redo,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+ggplot() + geom_point(data=gwas,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3_redo,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+##The hapmap individuals appear to be distributed in groupings in each PCA plot; however, the GWAS individuals look as thought they are a centered mass.  There are also a surprising numer of individuals who share PCs with the ASN populations.  This is not surprising because two separate PCAs were done.
+```
+ 
+##Additional notes on the PCA issue:
+The minimum genotyping rate restriction is not the issue; however, the genotyping rate after the merge is problematic.  If the merge is not working proberly, then the genotyping rate for the hapmap individuals relative to the GAIN individuals could be very low.  This would result in the hapmap samples be clustered around the origin.
+When looking at the .bim files for both the GAIN samples and the hapmap samples, the GAIN variants are labeled by SNP ID, while the hapmap variants are labeled by rs ID.  This is likely what is causing the problem with the merge.  Using the original summary files from dbGaP, we will need to change the SNP ID name to rs ID.  Then we may go forward with the merge and pca.
