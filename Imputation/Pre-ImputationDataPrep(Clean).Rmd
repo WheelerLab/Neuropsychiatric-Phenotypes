@@ -12,7 +12,7 @@ output: html_document
 
 The next .pl document will was copied from the wheelab1 directory (path: /home/wheelerlab1/Data/preImputation-check/HRC-1000G-check-bim.pl)
 ```{bash}
-~$pperl HRC-1000G-check-bim.pl -b /home/peter/Documents/Imputation/preImputation/QCStep2Liftover/hg19.bim -f newfreq.frq -r /home/wheelerlab1/Data/preImputation-check/all.caapa.sorted.txt -h
+~$perl HRC-1000G-check-bim.pl -b /home/peter/Documents/Imputation/preImputation/QCStep2Liftover/hg19.bim -f newfreq.frq -r /home/wheelerlab1/Data/preImputation-check/all.caapa.sorted.txt -h
 ```
 In the above command, we made the file "Run-plink.sh". This file contains every plink command that we need for the next command.
 ```{bash}
