@@ -1,0 +1,269 @@
+---
+title: "QC_Pipeline"
+author: "Peter Fiorica"
+date: "12/8/2017"
+output: html_document
+---
+
+The following is a variation of aandaleon's "01_PlinkQCPipeline.sh". Commands executed in Rstudio will be specified with an R chunk. Assume all other commands were executed in terminal.
+This is a pipeline for guidance.  This will be lightly annotated.  For a QC guide with more notes, see
+
+QC Step 1:
+```{bash}
+~$plink --bfile /home/peter/Documents/AA_bfiles/Merged_AA_GAIN --missing --out /home/peter/Documents/QC_Steps/QCStep1/QCStep
+```
+
+
+QC Step 2:
+```{bash}
+~$plink --bfile /home/peter/Documents/AA_bfiles/Merged_AA_GAIN --geno 0.01 --make-bed --out /home/peter/Documents/QC_Steps/QCStep2/QCStep2
+```
+
+
+QC Step 3:
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --missing --out /home/peter/Documents/QC_Steps/QCStep3/QCStep3
+```
+
+
+QC Step 4:
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --hardy --out /home/peter/Documents/QC_Steps/QCStep4/QCStep4
+```
+
+
+QC Step 5-A:
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --indep-pairwise 50 5 0.3 --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a
+```
+
+
+QC Step 5-B:
+##On the `--genome` option, there is no minimum threshold that was applied to this data because because any restriction would have eliminated individuals from our data.  The data for this set, as we will see in the graphs, is generally unrelated; therefore, a restriction of .125 or .2 is too stringent.
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep2/QCStep2 --extract /home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a.prune.in --genome --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5B/QCstep5B
+```
+
+Missingness Histograms:
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+"%&%"=function(a,b) paste(a,b,sep="")
+my.dir="/home/peter/Documents/QC_Steps/"
+lmiss<fread(my.dir %&% "QCStep1/QCStep.lmiss",header=T)
+hist(lmiss$F_MISS)
+dim(lmiss)[1]
+##This tells us the initial number of SNPs we will be working with to start.
+table(lmiss$F_MISS<0.01)
+##This tells us the number of SNPs with a call rate greater than 99%. In this case about 740000 meet that call rate.
+table(lmiss$F_MISS<0.01)/sum(table(lmiss$F_MISS<0.01))
+##From this, we can see that about 88% of the SNPs have a call rate >99%.  This value seems rather low. 
+table(lmiss$F_MISS<0.02)/sum(table(lmiss$F_MISS<0.02))
+#If we set the threshold at 98%, 94.6% of the SNPs have a call rate >98%
+imiss<-fread(my.dir %&% "QCStep3/QCStep3.imiss",header=T)
+hist(imiss$F_MISS)
+##Individual count in 2136.  The value is the same as the value with which we started/
+newlmiss<-fread(my.dir %&% "QCStep3/QCStep3.lmiss",header=T)
+hist(newlmiss$F_MISS)
+dim(newlmiss)[1]
+##SNP count is 743941
+```
+
+```{r}
+ibd<-fread(my.dir %&% "QCStep5/QCStep5B/QCstep5B.genome",header=T)
+ggplot(data = ibd, aes(x=Z0,y=Z1))+geom_point(alpha=1/4)+theme_bw()
+##Now we can check for duplicates in the data
+dups<-data.frame()
+for( i in 1:dim(ibd)[1]){
+  if(as.character(ibd$IID1[i])==as.character(ibd$IID2[i])){
+    dups<-rbind(dups,ibd[i,])
+  }
+}
+dim(dups)
+##It looks like we do not have any duplicates
+hapmap<-filter(ibd,grepl('NA',IID1))
+dim(hapmap)
+##Looks like there is nothing in 'hapmap'
+dim(others)
+##That took a while, but it looks like every SNP is in "others"
+hist(others$PI_HAT)
+sortOthers<-others[order(others$PI_HAT,decreasing = TRUE),]
+filter(others,PI_HAT>=.2)
+##The error Empty data.table (0 rows) of 14 cols: FID1,IID1,FID2,IID2,RT,EZ...
+##When looking at the histogram, it is clear that there are no SNPs with PI_HAT values >= 0.2
+```
+
+
+HWE Statistics
+```{r}
+hwe<-fread(my.dir %&% "QCStep4/QCStep4.hwe",header=T)
+summary(hwe$P)
+hist(hwe$P)
+table(hwe$P<1e-06)
+table(hwe$P<1e-06)/sum(table(hwe$P<1e-06))
+```
+
+
+QC Step 5-C
+```{bash}
+~$plink --bfile /home/peter/Documents/QCSteps/QCStep2/QCStep2 --het --out /home/peter/Documents/QCSteps/QCStep5/QCStep5C/QCStep5c
+```
+
+
+QC Step 5-D
+```{bash}
+~$plink --bfile/home/peter/Documents/QC_Steps/QCStep2/QCStep2 --extract --home/peter/Documents/QC_Steps/QCStep5/QCStep5A/QCStep5a --make-bed --out /home/peter/Documents/QC_Steps/QCStep5D/QCStep5d
+```
+
+
+QC Step 5-E
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d --het --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5E/QCStep5e
+```
+
+Check for Heterozygosity, flag any outliers for removal
+```{r}
+hetfile<-"QCStep5/QCStep5C/QCStep5c.het"
+HET<-read.table(my.dir %&% hetfile,header=T, as.is=T)
+h=(HET$N.NM.-HET$O.HOM.)/HET$N.NM.
+oldpar=par(mfrow=c(1,2))
+hist(h,50)
+hist(HET$F,50)
+summary(HET$F)
+par(oldpar)
+sortHET<-HET[order(HET$F),]
+View(sortHET)
+outliers<-data.frame()
+for(i in 1:length(sortHET$F)){
+   if(sortHET[i,6]>(mean(sortHET$F)+3*sd(sortHET$F))){
+     outliers<-rbind(outliers,sortHET[i,])
+     }    
+     if(sortHET[i,6]<(mean(sortHET$F)-3*sd(sortHET$F))){
+         outliers<-rbind(outliers,sortHET[i,])
+     }
+}
+hetoutliers<-select(outliers,FID,IID)
+dim(hetoutliers)
+##We are working we 29 outliers here.  This seems like a high number with respect to the 2136 with which we started.
+allexclude2<-hetoutliers
+write.table(allexclude2,file="/home/peter/Documents/QC_Steps/QCStep5/QCStep5C/QCStep5c.txt",quote=F,col.names = F,row.names = F)
+#The command above generated a list of outliers by FID and IID
+dim(imiss)[1]-dim(hetoutliers)[1]
+##Since we removed 29 individuals, we are left with 2107 total individuals remaining
+```
+
+
+QC Step 5-F:
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5D/QCStep5d --remove /home/peter/Documents/QC_Steps/QCStep5/QCStep5C/QCStep5c.txt --make-bed --out /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f
+```
+
+
+Liftover:
+```{bash}
+~$nano newfile
+##From here, we pasted the "LiftMap.py" script from the Michigan website (https://genome.ucsc.edu/cgi-bin/hgGateway) into the file.
+##Make the following changes to the script:
+  ##['LIFTOVERBIN']='/usr/local/bin/liftOver
+  ##['CHAIN']='/home/wheelerlab1/Data/liftOver_files/hg18ToHg19.over.chain.gz'
+~$nano LiftMap.py
+##Repeat the same step from above
+  ##['LIFTOVERBIN']='/usr/local/bin/liftOver
+  ##['CHAIN']='/home/wheelerlab1/Data/liftOver_files/hg18ToHg19.over.chain.gz
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f --recode --out /home/peter/Documents/QCSteps/LiftOver/newfile
+```
+
+```{bash}
+ ~$python LiftMap.py -m /home/peter/Documents/QC_Steps/LiftOver/newfile.map -p /home/peter/Documents/QC_Steps/LiftOver/newfile.ped -o new
+```
+
+```{bash}
+~$plink--file /home/peter/Documents/QC_Steps/LiftOver/new --make-bed --out hg19
+```
+
+Now that the files are in build 19, they can be merged with the hapmap reference group.  The hapmap reference groups has its variants listed as rs IDs; however, since my genotype data was acquired using an Affymetrix 6.0 chip, the variants are listed as SNP_A-###.  I needed to change the variants from this form to rs ID before merging with the hap map samples. To do this see...
+
+
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19 --bmerge /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.bed /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.bim /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig.fam --make-bed --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6A/QCStep6a
+```
+
+
+QC Step 6-B
+```{bash}
+~$plink --bfile /home/wheelerlab1/Data/HAPMAP3_hg19/HM3_ASN_CEU_YRI_Unrelated_hg19_noAmbig --exclude /home/peter/Documents/QC_Steps/QCStep6/QCStep6A/QCStep6a-merge.missnp --make-bed --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b
+```
+
+
+QC Step 6-C
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep5/QCStep5F/hg19 --bmerge /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bed /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.bim /home/peter/Documents/QC_Steps/QCStep6/QCStep6B/QCStep6b.fam --make-bed --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c
+```
+
+
+QC Step 6-D
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep6/QCStep6C/QCStep6c --geno 0.2 --maf 0.05 --make-bed --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d
+```
+
+
+QC Step 6-E
+```{bash}
+~$plink --bfile /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d --indep-pairwise 50 5 0.3 --recode --out /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e
+```
+
+
+QC Step 6-F
+```{bash}
+~$awk '{print $1,$2,$3,$4,$5,1}' /home/peter/Documents/QC_Steps/QCStep6/QCStep6D/QCStep6d.fam > /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e.fam
+```
+
+
+QC Step 6-G
+```{bash}
+~$perl /home/wheelerlab1/Data/GWAS_QC_scripts/make_par_file.pl /home/peter/Documents/QC_Steps/QCStep6/QCStep6E/QCStep6e 0 >/home/peter/Documents/QC_Steps/QCStep6/QCStep6F/QCStep6f.par
+```
+
+
+QC Step 6-H
+```{bash}
+~$smartpca -p /home/peter/Documents/QC_Steps/QCStep6/QCStep6F/QCStep6f.par
+```
+This will take about 10 minutes to run PCA through the sample, and the output will be a long list of eigenvalues and eigenvectors for each individual in the run.
+
+```{r}
+pca.dir<-"/home/peter/Documents/QC_Steps/"
+hapmappopinfo<-read.table("/home/wheelerlab1/Data/HAPMAP3_hg19/pop_HM3_hg19_forPCA.txt") %>% select(V1,V3)
+colnames(hapmappopinfo)<-c("pop","IID")
+fam<-read.table(pca.dir %&% "QCStep6/QCStep6E/QCStep6e.fam") %>% select(V1,V2)
+colnames(fam)<-c("FID","IID")
+popinfo <- left_join(fam,hapmappopinfo,by="IID")
+popinfo <- mutate(popinfo, pop=ifelse(is.na(pop),'GWAS', as.character(pop)))
+table(popinfo$pop)
+pcs<-read.table(pca.dir %&% "QCStep6/QCStep6E/QCStep6e.evec",skip=1)
+pcdf <- data.frame(popinfo, pcs[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwas <- filter(pcdf,pop=='GWAS')
+hm3 <- filter(pcdf, grepl('NA',IID))
+eval<-scan(pca.dir %&% "QCStep6/QCStep6E/QCStep6e.eval")[1:10]
+round(eval/sum(eval),3)
+
+##PCA Plot 1
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data = hm3,aes(x=PC1,y=PC2,col=pop,shape=pop))+theme_bw() +scale_colour_brewer(palette ="Set1")
+
+##PCA Plot 2
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+##PCA Plot 3
+ggplot() + geom_point(data=gwas,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+##PCA Plot 4
+yri <- filter(pcdf,pop=='YRI')
+uPC1 <- mean(yri$PC1) + 5*sd(yri$PC1)
+lPC1 <- mean(yri$PC1) - 5*sd(yri$PC1)
+uPC2 <- mean(yri$PC2) + 5*sd(yri$PC2)
+lPC2 <- mean(yri$PC2) - 5*sd(yri$PC2)
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() +geom_vline(xintercept=c(uPC1,lPC1)) +geom_hline(yintercept=c(uPC2,lPC2))
+```
+
+From here, move to the steps for Pre-Imputation Data Prep
