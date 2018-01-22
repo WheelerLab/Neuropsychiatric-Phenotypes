@@ -1,0 +1,41 @@
+---
+title: "MoreStringentPCA"
+author: "Peter Fiorica"
+date: "1/22/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+This is the 4th variation of PCA.
+The GWAS data for this analysis used a `--geno 0.05` and `--maf 0.05` threshold to filter the data.
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+hapmappopinfo4<-read.table("/home/wheelerlab1/Data/HAPMAP3_hg19/pop_HM3_hg19_forPCA.txt") %>% select(V1,V3)
+colnames(hapmappopinfo4)<-c("pop","IID")
+fam4<-read.table("/home/peter/Documents/QC_Steps/QCStep6/QCStep6.1/QCStep6.4/QC6.4E.fam") %>% select(V1,V2)
+colnames(fam4)<-c("FID","IID")
+popinfo4 <- left_join(fam4,hapmappopinfo4,by="IID")
+table(popinfo4$pop)
+pcs4<-read.table("/home/peter/Documents/QC_Steps/QCStep6/QCStep6.1/QCStep6.4/QC6.4E.evec", skip=1)
+pcdf4 <- data.frame(popinfo4, pcs4[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwas4 <- filter(pcdf4,pop=='GWAS')
+hm3.4 <- filter(pcdf4, grepl('NA',IID))
+eval4<-scan("/home/peter/Documents/QC_Steps/QCStep6/QCStep6.1/QCStep6.4/QC6.4E.eval") [1:10]
+round(eval4/sum(eval4),3)
+##PCA Plot1 (PC2 vs. PC1)
+ggplot() + geom_point(data=gwas4,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data = hm3.4,aes(x=PC1,y=PC2,col=pop,shape=pop))+theme_bw() +scale_colour_brewer(palette ="Set1")
+##PCA Plot2 (PC3 vs. PC1)
+ggplot() + geom_point(data=gwas4,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3.4,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+##PCA Plot 3 (PC3 vs PC2)
+ggplot() + geom_point(data=gwas4,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3.4,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+## PCA Plot 4 (PC3 vs. PC1)
+yri4 <- filter(pcdf4,pop=='YRI')
+uPC1 <- mean(yri4$PC1) + 5*sd(yri4$PC1)
+lPC1 <- mean(yri4$PC1) - 5*sd(yri4$PC1)
+uPC2 <- mean(yri4$PC2) + 5*sd(yri4$PC2)
+lPC2 <- mean(yri4$PC2) - 5*sd(yri4$PC2)
+ggplot() + geom_point(data=gwas4,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3.4,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() +geom_vline(xintercept=c(uPC1,lPC1)) +geom_hline(yintercept=c(uPC2,lPC2))
+```
+
