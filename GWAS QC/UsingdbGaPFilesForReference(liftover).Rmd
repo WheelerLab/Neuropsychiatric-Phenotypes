@@ -1,0 +1,36 @@
+---
+title: "Using dbGaP files for reference (lift0ver)"
+author: "Peter Fiorica"
+date: "11/20/2017"
+output: html_document
+---
+
+The Goal of this script will be to independently load each .chpa file from the dbGaP files, so that we may use the hg18 reference before the lift over.  If we can ensure that all of SNPs are properly named in the correct location, hopefully we may solve the PCA problem.
+
+
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(gplots)
+
+for(i in 1:22){
+    a<-fread("/home/wheelerlab1/Data/dbGaP_psychiatric_prj_15297/GAIN_SCZ/pha002859.v1.p1/pha002859.v1.p1.chr"%&%i%&%".chpa",header=T)
+    chra<-dplyr::select(a,"Marker accession","Chr ID", "Chr Position","Submitted SNP ID")
+    if(exists("allchrome")){
+        allchrome<-rbind(allchrome,chra)
+    }else{
+      allchrome <- chra
+    }
+}
+
+bim <- fread("/home/peter/Documents/QC_Steps/QCStep5/QCStep5F/QCStep5f.bim")
+
+mergedbim <- left_join(bim, allchrome, by = c("V1" = "Chr ID", "V4" = "Chr Position"))
+mergedbim2 <- mutate(mergedbim,snp=ifelse(is.na(`Marker accession`),V2, `Marker accession`))
+newbim <- dplyr::select(mergedbim2,V1,snp,V3,V4,V5,V6)
+filetest2<-newbim[!duplicated.data.frame(newbim),]
+write.table(filetest2,"/home/peter/Documents/QC_Steps/Testing/newbim.bim",quote=F, sep="\t",row.names=F,col.names=F)
+
+```
+
