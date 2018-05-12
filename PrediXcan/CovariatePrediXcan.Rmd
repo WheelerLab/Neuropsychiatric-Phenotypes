@@ -1,0 +1,104 @@
+---
+title: "PrediXcanw.Covariates"
+author: "Peter Fiorica"
+date: "May 7, 2018"
+output: html_document
+---
+
+Since PrediXcan does not have a built in argument for adding covariates, tbe plan is to adjust the phenotypes (typically 1 and 0s) by PCs
+
+```{r}
+library(dplyr)
+library(data.table)
+```
+##############
+#Paper scatch notes from Dr. Wheeler:
+#fit=glm(phenotype~PC1+PC2...PC5)
+#residuals->new phenotype
+#fit$residuals->linear
+##############
+phenotype~pred-gene_exp+PC1+PC2+PC3+PC4...
+##############
+
+```{r}
+eigenvec<-fread("z://GWAS/pcaData/Data2136/pc1to10.2.eigenvec", header=F)
+pheno<-fread("Z://PrediXcan/pheno.txt",header=F)
+```
+
+```{r}
+fit<-glm(pheno$V3~eigenvec$V3 + eigenvec$V4 + eigenvec$V5 + eigenvec$V6 + eigenvec$V7 + eigenvec$V8 + eigenvec$V9 + eigenvec$V10 + eigenvec$V11 + eigenvec$V12)
+newphenotype<-fit$residuals
+
+```
+
+```{r}
+residualphenos<-data.table(x=pheno$V1,y=pheno$V2,z=newphenotype)
+colnames(residualphenos)<-c("FID","IID","Pheno")
+write.table(residualphenos,file="z://PrediXcan/residualpheno.txt",sep = " ", quote = FALSE, col.names = FALSE, row.names = FALSE)
+```
+
+
+Now that the residual phenotype file has been generated, we should be able to run PrediXcan association using just the new phenotype file with a Predicted expression file.
+
+Before we run the association test on every tissue, I want to see if it works on one tissue that had an associated gene when ran without covariates.
+```{bash}
+PrediXcan.py --assoc --linear --pred_exp /home/peter/PrediXcan/PrediXcanOutput2nodups/AA_TW_Cells_Transformed_fibroblasts_0.5.db_predicted_expression.txt --pheno /home/peter/PrediXcan/residualpheno.txt --output_prefix AA_testtissue
+```
+The test appears to have run correctly.  
+I ran a script that runs all of them as /home/peter/scripts/predixcanassociation.sh
+
+
+The association test is complete, now the genes have to be filtered by p-value
+```{r}
+"%&%" = function(a,b) paste(a,b,sep="")
+database_tissues <- c("TW_Adipose_Subcutaneous_0.5.db", "TW_Adipose_Visceral_Omentum_0.5.db", "TW_Adrenal_Gland_0.5.db", "TW_Artery_Aorta_0.5.db", "TW_Artery_Coronary_0.5.db", "TW_Artery_Tibial_0.5.db", "TW_Brain_Anterior_cingulate_cortex_BA24_0.5.db", "TW_Brain_Caudate_basal_ganglia_0.5.db", "TW_Brain_Cerebellar_Hemisphere_0.5.db", "TW_Brain_Cerebellum_0.5.db", "TW_Brain_Cortex_0.5.db", "TW_Brain_Frontal_Cortex_BA9_0.5.db", "TW_Brain_Hippocampus_0.5.db", "TW_Brain_Hypothalamus_0.5.db", "TW_Brain_Nucleus_accumbens_basal_ganglia_0.5.db", "TW_Brain_Putamen_basal_ganglia_0.5.db", "TW_Breast_Mammary_Tissue_0.5.db", "TW_Cells_EBV-transformed_lymphocytes_0.5.db", "TW_Cells_Transformed_fibroblasts_0.5.db", "TW_Colon_Sigmoid_0.5.db", "TW_Colon_Transverse_0.5.db", "TW_Esophagus_Gastroesophageal_Junction_0.5.db", "TW_Esophagus_Mucosa_0.5.db", "TW_Esophagus_Muscularis_0.5.db", "TW_Heart_Atrial_Appendage_0.5.db", "TW_Heart_Left_Ventricle_0.5.db", "TW_Liver_0.5.db", "TW_Lung_0.5.db", "TW_Muscle_Skeletal_0.5.db", "TW_Nerve_Tibial_0.5.db", "TW_Ovary_0.5.db", "TW_Pancreas_0.5.db", "TW_Pituitary_0.5.db", "TW_Prostate_0.5.db", "TW_Skin_Not_Sun_Exposed_Suprapubic_0.5.db", "TW_Skin_Sun_Exposed_Lower_leg_0.5.db", "TW_Small_Intestine_Terminal_Ileum_0.5.db", "TW_Spleen_0.5.db", "TW_Stomach_0.5.db", "TW_Testis_0.5.db", "TW_Thyroid_0.5.db", "TW_Uterus_0.5.db", "TW_Vagina_0.5.db", "TW_Whole_Blood_0.5.db")
+threshold <- 0.05
+```
+
+Filter by FDR(benjamini-hochberg):
+```{r}
+significant<-fread("z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/significant.txt")
+for(i in database_tissues){
+		PrediXcan_result <- fread("z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/AA_Cov_Assoc_" %&% i %&% "_association.txt")
+		PrediXcan_result$FDR <- p.adjust(PrediXcan_result$p)
+		fwrite(PrediXcan_result, "Z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/FDR/" %&% i %&% "_association_FDR.txt", sep = "\t")
+		PrediXcan_result$tissue <- i
+		PrediXcan_result <- subset(PrediXcan_result, FDR <= threshold)
+		significant <- bind_rows(significant, PrediXcan_result)
+	}
+
+fwrite(significant, "z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/significant.txt")
+
+genenames<-fread("z://PrediXcan/BP_Chrome.txt", header=T)
+
+significantnames<-left_join(significant,genenames, by=c("gene"))
+significantnames1<-mutate(significantnames,gene,beta,p,CHR=as.numeric(significantnames$CHR),BP,gene_name)
+write.table(significantnames1,file="z://PrediXcan/PrediXcanOutput2nodups/significantnames1.txt", quote=FALSE,col.names = TRUE, row.names = FALSE,sep = "\t")
+```
+Clear the data environment in R before going forward with the bonferroni correction
+
+Filter by bonferroni correction:
+```{r}
+significantbonf<-fread("z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/significantBonf.txt")
+for(i in database_tissues){
+		PrediXcan_resultbonf <- fread("z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/AA_Cov_Assoc_" %&% i %&% "_association.txt")
+		PrediXcan_resultbonf$p.bonf <- p.adjust(PrediXcan_resultbonf$p,"bonferroni")
+		write.table(PrediXcan_resultbonf, file= "Z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/Bonferroni/AA_" %&% i %&% "_association_bonf.txt", sep = "\t",col.names = T, row.names = F)
+		PrediXcan_resultbonf$tissue <- i
+		PrediXcan_resultbonf <- subset(PrediXcan_resultbonf, p.bonf <= threshold)
+		significantbonf <- bind_rows(significantbonf, PrediXcan_resultbonf)
+	}
+
+```
+
+```{r}
+write.table(significantbonf, file = "z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/significantBonf.txt", col.names = T, quote = F)
+
+```
+
+```{r}
+genenames<-fread("z://PrediXcan/BP_Chrome.txt", header=T)
+significantnamesbonf<-left_join(significantbonf,genenames, by=c("gene"))
+significantnames1bonf<-mutate(significantnamesbonf,gene,beta,p,CHR=as.numeric(significantnamesbonf$CHR),BP,gene_name)
+write.table(significantnames1bonf,file="z://PrediXcan/PrediXcanOutput2nodups/AssociationWCovariates/significantnamesbonf.txt", quote=FALSE,col.names = TRUE, row.names = FALSE,sep = "\t")
+```
