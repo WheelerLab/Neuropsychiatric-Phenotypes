@@ -1,0 +1,33 @@
+---
+title: "PrediXcan"
+author: "Peter Fiorica"
+date: "2/5/2018"
+output: html_document
+---
+
+```{}
+awk '{print $1,$2,$6}' /home/peter/PrediXcan/QCStep2/QCStep2.fam > /home/peter/PrediXcan/pheno1.txt
+```
+The command above takes a .fam file and makes it into a phenotype file.
+To more easilt show direction of effect when we run PrediXcan, I want the affected value to be 0 (unaffected) and 1 (affected).
+```{}
+awk -v s=1 '{print $1, $2, $3-1}' pheno1.txt > pheno.txt 
+```
+
+```{r}
+database_tissues <- c("TW_Adipose_Subcutaneous_0.5.db", "TW_Adipose_Visceral_Omentum_0.5.db", "TW_Adrenal_Gland_0.5.db", "TW_Artery_Aorta_0.5.db", "TW_Artery_Coronary_0.5.db", "TW_Artery_Tibial_0.5.db", "TW_Brain_Anterior_cingulate_cortex_BA24_0.5.db", "TW_Brain_Caudate_basal_ganglia_0.5.db", "TW_Brain_Cerebellar_Hemisphere_0.5.db", "TW_Brain_Cerebellum_0.5.db", "TW_Brain_Cortex_0.5.db", "TW_Brain_Frontal_Cortex_BA9_0.5.db", "TW_Brain_Hippocampus_0.5.db", "TW_Brain_Hypothalamus_0.5.db", "TW_Brain_Nucleus_accumbens_basal_ganglia_0.5.db", "TW_Brain_Putamen_basal_ganglia_0.5.db", "TW_Breast_Mammary_Tissue_0.5.db", "TW_Cells_EBV-transformed_lymphocytes_0.5.db", "TW_Cells_Transformed_fibroblasts_0.5.db", "TW_Colon_Sigmoid_0.5.db", "TW_Colon_Transverse_0.5.db", "TW_Esophagus_Gastroesophageal_Junction_0.5.db", "TW_Esophagus_Mucosa_0.5.db", "TW_Esophagus_Muscularis_0.5.db", "TW_Heart_Atrial_Appendage_0.5.db", "TW_Heart_Left_Ventricle_0.5.db", "TW_Liver_0.5.db", "TW_Lung_0.5.db", "TW_Muscle_Skeletal_0.5.db", "TW_Nerve_Tibial_0.5.db", "TW_Ovary_0.5.db", "TW_Pancreas_0.5.db", "TW_Pituitary_0.5.db", "TW_Prostate_0.5.db", "TW_Skin_Not_Sun_Exposed_Suprapubic_0.5.db", "TW_Skin_Sun_Exposed_Lower_leg_0.5.db", "TW_Small_Intestine_Terminal_Ileum_0.5.db", "TW_Spleen_0.5.db", "TW_Stomach_0.5.db", "TW_Testis_0.5.db", "TW_Thyroid_0.5.db", "TW_Uterus_0.5.db", "TW_Vagina_0.5.db", "TW_Whole_Blood_0.5.db")
+
+rite.table(database_tissues,file = "/home/peter/PrediXcan/tissuelist", quote=FALSE,col.names=FALSE, row.names = FALSE)
+file<-fread("/home/peter/PrediXcan/pheno.txt")
+colnames(file)<-c("FID","IID","Pheno")
+write.table(file,file="/home/peter/PrediXcan/pheno.txt",sep="\t",row.names = FALSE)
+```
+
+
+The next script can be found in /home/peter/scripts/predixcan_script.sh.  Qsub has not been working for my PrediXcan scripts, so that may be worth noting for future reference. The PrediXcan script is the following:
+```{}
+for tiss in `cat tissuelist2`; do
+    echo $tiss
+    PrediXcan.py --predict --assoc --logistic --dosages /home/peter/uMichiganFiles/UMich_dosages/ --dosages_prefix chr --samples /home/peter/uMichiganFiles/UMich_dosages/samples.txt --weights /home/wheelerlab3/Data/PrediXcan_db/GTEx-V6p-HapMap-2016-09-08/${tiss} --pheno pheno.txt --output_prefix /home/peter/PrediXcan/PrediXcanOutput/AA_${tiss}
+done
+```
