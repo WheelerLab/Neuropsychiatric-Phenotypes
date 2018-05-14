@@ -1,0 +1,115 @@
+---
+title: "Principal_Component_Analysis2"
+author: "Peter Fiorica"
+date: "4/23/2018"
+output: html_document
+---
+
+This script is an overview of running PCA with only GWAS data for the purposes of generating covariates for GWAS and PrediXcan.
+
+
+In my meeting with Dr. Wheeler, we wanted to establish the following goals in no specific order.:
+-Run with only GWAS of PCA set
+-calculating PCs in plink...10 PCs to start
+-see how much variance is explained by each PC
+-run logistic regression in plink and predixcan
+
+##########
+1) Calculating PCs in plink. . . 10 to start
+2) Run with only GWAS of PCA set
+##########
+```{bash}
+#When I went back to look at my data and notes, "/home/peter/QC_Steps/QCStep6/QCStep6.1/hg19", is the last bed/bim/fam set before the merge.
+#304427 is enough SNPs for PCA.
+#For more documentation on pca in plink, see https://www.cog-genomics.org/plink/1.9/strat
+plink --bfile /home/peter/QC_Steps/QCStep6/QCStep6.1/hg19 --pca 10 --out /home/peter/GWAS/pcaData/pc1to10
+```
+
+##########
+3) See how much variance is explained by each PC
+##########
+Now, it is time to make a scree plot:
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+
+eigenvalue<-fread("/home/peter/GWAS/pcaData/pc1to10.eigenval",header=F)
+eigenvalue<-mutate(eigenvalue,PC=1:10)
+ggplot(data=eigenvalue,aes(x=PC,y=V1)) + geom_line() +geom_point() + ylab("Eigenvalue") +xlab("PC")
+```
+
+##########
+4) Run logistic regression in plink and predixcan
+##########
+
+Now that the screeplot has been made, we can move on to generate a covariate file.  Since the PCA was conducted in PLINK, not eigenstrat, the file is already prepared to generate a .cov using the following command:
+```{bash}
+plink --bfile /home/peter/QC_Steps/QCStep2/QCStep2 --covar /home/peter/GWAS/pcaData/pc1to10.eigenvec --write-covar --out /home/peter/GWAS/pcaData/covariates
+```
+
+```{bash}
+plink --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam --dosage /home/peter/GWAS/dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/GWAS/maps2/mapall22.map --logistic --covar /home/peter/GWAS/pcaData/covariates.cov --out /home/peter/GWAS/GAINSCZ2wCov
+```
+The association test appears to have worked using the above command; however, in the .log file, there was the following error:
+
+29 people were not seen in the covariate file.
+and 
+--dosage automatically performs a regression; --linear/--logistic has no
+additional effect.
+This is because to conduct PCA and generate a covariate file, the data that went through quality control was used.  This is problematic because there is data missing for individuals; moreover, we want to conduct PCA on data that has been filtered.  The non-filtered data was used for imputation, though.
+
+#######################################
+Since the data used above only contained 2107 people, I will be repeating everything above with a dataset containing 2136 people, the same used for imputation.  There is nothing wrong with the pipeline used above;however, the GWAS needs to be conducted with the appropriate number of people.
+#######################################
+
+##########
+1) Calculating PCs in plink. . . 10 to start
+2) Run with only GWAS of PCA set
+##########
+The 29 less people is an issue that needs to be addressed.  I am going to re-run PCA on data that has been filtered from genotyping rate and ibd-pruned.  Neither of these filters removed individuals from the dataset.
+
+```{bash}
+plink --bfile /home/peter/QC_Steps/QCStep2/QCStep2 --indep-pairwise 50 5 0.3 --out /home/peter/QC_Steps/QCStep6/QCdataforPCA/IBDpruned4PCA
+```
+
+```{bash}
+plink --bfile /home/peter/QC_Steps/QCStep2/QCStep2 --extract /home/peter/QC_Steps/QCStep6/QCdataforPCA/IBDpruned4PCA.prune.in --genome --out  /home/peter/QC_Steps/QCStep6/QCdataforPCA/IBDpruned4PCA
+```
+
+```{bash}
+plink --bfile /home/peter/QC_Steps/QCStep2/QCStep2 --extract /home/peter/QC_Steps/QCStep6/QCdataforPCA/IBDpruned4PCA.prune.in  --make-bed --out /home/peter/QC_Steps/QCStep6/QCdataforPCA/IBDpruned4PCAbfile
+```
+
+```{bash}
+plink --bfile /home/peter/QC_Steps/QCStep6/QCdataforPCA/IBDpruned4PCAbfile --pca 10 --out /home/peter/GWAS/pcaData/pc1to10.2
+```
+
+```{bash}
+plink --bfile /home/peter/QC_Steps/QCStep6/QCdataforPCA/IBDpruned4PCAbfile --covar /home/peter/GWAS/pcaData/Data2136/pc1to10.2.eigenvec --write-covar --out /home/peter/GWAS/pcaData/Data2136/covariates.2
+```
+
+##########
+3) See how much variance is explained by each PC
+##########
+
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+
+eigenvalue<-fread("/home/peter/GWAS/pcaData/Data2136/pc1to10.2.eigenval",header=F)
+eigenvalue<-mutate(eigenvalue,PC=1:10)
+ggplot(data=eigenvalue,aes(x=PC,y=V1)) + geom_line() +geom_point() + ylab("Eigenvalue") +xlab("PC")
+```
+
+##########
+4) Run logistic regression in plink and predixcan
+##########
+
+```{bash}
+plink --fam /home/peter/QC_Steps/QCStep6/QCdataforPCA/IBDpruned4PCAbfile.fam --dosage /home/peter/GWAS/dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/GWAS/maps2/mapall22.map --logistic --covar /home/peter/GWAS/pcaData/Data2136/covariates.2.cov --out /home/peter/GWAS/GWASwCov2136/GAINSCZ2wCov2
+````
+
+Since PrediXcan does not have a built-in argument for taking into account covariates, we have to take them into account after the fact.
+This can be done by loading the expression levels and PCs in R and then using the `lm~` command to generate a linear(maybe we should use logistic) model to have new expression levels.
