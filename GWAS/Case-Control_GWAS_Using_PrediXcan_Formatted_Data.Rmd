@@ -1,0 +1,251 @@
+---
+title: "Case-Control GWAS Using PrediXcan Formatted Data"
+author: "Peter Fiorica"
+date: "3/12/2018"
+output: html_document
+---
+
+Considering that previous pipelines in the Wheeler Lab depict the procedure for quantitative trait GWAS, there is a need for a case-control GWAS pipeline.
+Dr. Wheeler asked me to ideally use dosage files from PrediXcan format instead of making an entirely new set of dosage files from the uMichigan .vcf files.
+
+```{bash}
+##The format of the PrediXcan dosages is the following: Chr  rsID  Position  Allele1 Allele2 MAF DosageInfoByIndividual
+
+##Just spitballing, but the PLINK documentation looks like PLINK wants the data to be set up as the following: SNP  Allele1 Allele2 DosagesByIndividual
+##PLINK has a options that allow us to skip over specific columns in a file to only have these data.
+##To test this, I tried it with Chromosome 22.
+plink --dosage /home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz noheader skip0=1 skip1=1 skip2=1 --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam
+##This gave me the following output
+PLINK v1.90b4.4 64-bit (21 May 2017)           www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to plink.log.
+Options in effect:
+  --dosage /home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz skip0=1 skip1=1 skip2=1
+  --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam
+
+515882 MB RAM detected; reserving 257941 MB for main workspace.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+--dosage: Reading from
+/home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz.
+Error: Column 2 of
+/home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz's
+header isn't 'SNP'.
+```
+I was missing the noheader option on the file, so I tried it again with this:
+```{}
+plink --dosage /home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz noheader skip0=1 skip1=1 skip2=1 --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam
+
+PLINK v1.90b4.4 64-bit (21 May 2017)           www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to plink.log.
+Options in effect:
+  --dosage /home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz noheader skip0=1 skip1=1 skip2=1
+  --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam
+
+515882 MB RAM detected; reserving 257941 MB for main workspace.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+--dosage: Reading from
+/home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz.
+Error: Line 1 of
+/home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz has
+fewer tokens than expected.
+```
+
+
+I have had the "fewer tokens than expected error" before after I merged before PCA, so maybe it could be because the .fam and dosage file do not sync up
+```{r}
+##Considering we have files divided by chromosome, it may be a good idea to make a list of the files we want to use.  PLINK has a setting that allows us to use list files instead of manually inputting each dosage file.
+nano dosagelist
+#The list contains the file paths and names of the filtered UMichigan dosage files.
+plink --dosage /home/peter/GWAS/dosagelist list noheader skip0=1 skip1=1 skip2=1 --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam 
+##This was the error I received
+Error: --dosage 'noheader' modifier cannot be used with multifile batches.
+##After further exploring the PLINK documentation, it looks like I need to use the `sepheader` instead of no header if I am using a list.  I am going to test the sepheader option on chromosome 22 first.
+```
+
+```{bash}
+plink --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam --dosage /home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz skip0=1 skip1=1 skip2=1 sepheader c22.lst
+
+#with the error:
+Error: Invalid --dosage modifier 'c22.lst'.
+
+#I then tried this:
+plink --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam --dosage examplelist.txt list sepheader  skip0=1 skip1=1 skip2=1
+#and got the error:
+Error: c22.lst is empty.
+# c22.lst contains the following single line:
+CHR SNP Position A1 A2 MAF F1 I1 F2 I2 FN IN
+```
+
+
+
+I went back and modified one of the commands from above with the `format=1` modifier because the initial error was "fewer tokens than expected." It looks like it worked with chr22 at least.
+```{bash}
+plink --dosage /home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz noheader  skip0=1 skip1=1 skip2=1 format=1 --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam
+PLINK v1.90b4.4 64-bit (21 May 2017)           www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to plink.log.
+Options in effect:
+  --dosage /home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz noheader skip0=1 skip1=1 skip2=1 format=1
+  --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam
+
+515882 MB RAM detected; reserving 257941 MB for main workspace.
+2136 people (1101 males, 1035 females) loaded from .fam.
+2136 phenotype values loaded from .fam.
+Using 1 thread (no multithreaded calculations invoked).
+2136 people pass filters and QC.
+Among remaining phenotypes, 1187 are cases and 949 are controls.
+--dosage: Reading from
+/home/peter/uMichiganFiles/UMich_dosages/chr22.maf0.05.r20.8.dosage.txt.gz.
+--dosage: Results saved to plink.assoc.dosage .
+```
+I tried the same command on the full dosagelist,
+```{bash}
+plink --dosage /home/peter/GWAS/dosagelist noheader  skip0=1 skip1=1 skip2=1 format=1 --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam --out dosages.list
+#And I had the error: 
+Error: Line 1 of /home/peter/GWAS/dosagelist has fewer tokens than expected.
+```
+
+
+3.16.18
+Lauren sent me a link and a command from that was used in the past:
+```{bash}
+plink --fam BC19complete-updated.fam --dosage BreastPlink.txt list sepheader Zin format=1 --out /home/danny/BreastGWAS/Breast
+
+https://www.cog-genomics.org/plink2/assoc#dosage
+#The link explains the --dosage command better than the PLINK documentation
+```
+
+
+```{bash}
+plink --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam --dosage dosagelist.txt list noheader skip0=1 skip1=1 skip2=1  Zin format=1 --out /home/peter/GWAS/GAINSCZ
+```
+The above command worked; however, when I look at the number of SNPs in this file, there are only about 5 millions.  The total number of SNPs in the PrediXcan dosage files were about 38 million.
+
+After meeting with Dr. Wheeler, we reconsidered that 38 million number.  
+```{bash}
+zcat /home/peter/uMichiganFiles/UMich_dosages/chr* | wc -l
+5094358
+#This number matches with 5094359 from the PLINK dosage file
+```
+Additionally, in my meeting with Dr. Wheeler, we discussed that I should make a map file using python from the PrediXcan dosages file.  See the script /home/peter/GWAS/MakingMAPfromDosages.py
+
+When I ran the script in the path above, I did not get an error; however, after speaking with Dr. Wheeler, we worked on a new script (/home/peter/GWAS/MakingMAPfromDosagesloop.py) that included a for loop that would write data from each chromosome to a single .map file.  When I ran that python script, I received the following error:
+```{}
+File "MakingMAPfromDosagesloop.py", line 10, in <module>
+    for line in gzip.open(PrediXcanDosage):
+  File "/usr/local/bin/anaconda2/lib/python2.7/gzip.py", line 34, in open
+    return GzipFile(filename, mode, compresslevel)
+  File "/usr/local/bin/anaconda2/lib/python2.7/gzip.py", line 94, in __init__
+    fileobj = self.myfileobj = __builtin__.open(filename, mode or 'rb')
+IOError: [Errno 2] No such file or directory: '/home/peter/uMichiganFiles/UMich_dosages/chr+str(i)+.maf0.05.r20.8.dosage.txt.gz
+```
+
+What surprises me about this error is that the only addition to the script is a for loop, but python is having an issue reading gzip.py on wheelerlab3.
+This may be a result of openning and closing a zipped file in the for loop.
+
+```{bash}
+#I plan to come back to the for loop script, but for the time being, I am manually changing the chromosome number in MakingMAPfromDosages.py.  After I change the number I am executing the python command and repeating.
+python MakingMAPfromDosages.py
+#Since the .map files have now been made, they can be concatenated
+#To avoid having chr10 first, I could not use dosages*.map > mapall.map, so I moved files around to work around this.
+cat mergedosages1-9.map mergedosages10-22.map > mapall.map
+#We can now execute the initial plink command with a map file
+plink --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam --dosage dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map mapall.map --out /home/peter/GWAS/GAINSCZ
+#I received the error:
+  #Error: Duplicate ID 'rs6737190'.
+#Using the grep and sed command, I found a removed the duplicate that was listed in chr1
+  #After running the plink command again, I received another duplicate error.  The strange thing about this error was that the duplicate SNP did not exist in the Santa Cruz Genome Browser.
+awk 'seen[$2]++ ==1' mapall.map > mapdups.map
+#This command makes a list of duplicates printed once, but I do not know if all of the SNPs are legitimate, nor do IU no a way to quickly check that for 73177 SNPs.
+```
+
+```{r}
+mapall<-fread("/home/peter/GWAS/mapall.map",header=F)
+test<-fread("/home/peter/GWAS/GAINSCZ.assoc.dosage",header=T)
+
+mergeassoc<-left_join(mapall,test,by=c("V2"="SNP"))
+mergeassoc2<-dplyr::select(mergeassoc,V1,V2,V4,A1,A2,FRQ,INFO,OR,SE,P)
+write.table(mergeassoc2,file="/home/peter/GWAS/AllAssocWDups.assoc",quote=F,sep = " ",col.names=FALSE,row.names=FALSE)
+
+sed 's/chr//g' AllAssocwDups.assoc >  AllAssocWdupsnochr.assoc
+#The above command makes a list of SNPs that are repeated twice in the assocation file.
+mergeassoc3<-fread("/home/peter/GWAS/AllAssocWdupsnochr.assoc",header = F)
+manhattan(mergeasspc3,chr='V1',p='V10',snp='V2', bp='V3')
+#The above commands reads in the file that includes duplicate SNPs and makes a manhattan plot for it.
+```
+After I informed Dr. Wheeler of the issue of duplicates, she recommended that I look at the .vcf files from UMich and attempt to identify the first set of files that have the duplicates.
+```{bash}
+zcat chr* | grep -w rs6737190
+#The command above looked through the PrediXcan dosages.
+#When tracing my steps back through each file.  I found the duplicated SNP in the PrediXcan dosages file for chr 1 and 2.  
+#Additionally,I found the duplicates in the imputation files as well.
+zcat chr1.dose.vcf.gz | grep -w 1779036
+zcat chr2.dose.vcf.gz | grep -w 1779036
+#This was not an issue in the pre-imputed data, so it must have happened during imputation.
+#I am going to look into if this is a recurring issue with the CAAPA reference panel.
+```
+
+In the reference file 1:45 is rs45 and 2:45 would both get mapped back to rs45.
+Something to think about it changing the SNP back to its chromosome position and exploring how PLINK handles it.
+When I looked back at /home/lauren/ref_impute/all.caapa.sorted.txt , I used another grep to search for the position.
+#1	1779036	rs6692959	T	C	1101	1764	0.6241
+#2	1779036	rs6737190	C	A	506	1766	0.2865
+
+
+```{bash}
+#Dr. Wheeler recommended that I change the python script in the following manner, so that it ties the chromosome to the position.
+cpos=c+":"+pos
+predict[cpos]
+#I made few changes to the script for handling the uMich data.  Specifically, I made the changes above and I am having the new files go to UMichDosages2.  A new directory I made for these files.
+bash umich.sh
+```
+
+It looks like the script ran correctly, but its worth confirming that some SNPs had their names corrected
+```{bash}
+zcat chr1.maf0.05.r20.8.dosagenodups.txt.gz | grep -w rs112324791
+zcat chr2.maf0.05.r20.8.dosagenodups.txt.gz | grep -w rs112324791
+#The second search for the SNP found it on the correct chromosome.
+zcat chr* | wc -l
+#5413615
+#This value is surprising because there are about 300k more SNPs than before
+
+peter@wheelerlab3:~/uMichiganFiles/UMich_dosages2$ zcat chr1.maf0.05.r20.8.dosagenodups.txt.gz | wc -l
+#431560
+peter@wheelerlab3:~/uMichiganFiles/UMich_dosages$ zcat chr1.maf0.05.r20.8.dosage.txt.gz | wc -l
+#399455
+peter@wheelerlab3:~/uMichiganFiles/UMich_dosages2$ zcat chr2.maf0.05.r20.8.dosagenodups.txt.gz | wc -l
+#485096
+peter@wheelerlab3:~/uMichiganFiles/UMich_dosages$ zcat chr2.maf0.05.r20.8.dosage.txt.gz | wc -l
+#449467
+peter@wheelerlab3:~/uMichiganFiles/UMich_dosages2$ zcat chr21.maf0.05.r20.8.dosagenodups.txt.gz | wc -l
+#75360
+peter@wheelerlab3:~/uMichiganFiles/UMich_dosages$ zcat chr21.maf0.05.r20.8.dosage.txt.gz | wc -l
+#74635
+peter@wheelerlab3:~/uMichiganFiles/UMich_dosages2$ zcat chr22.maf0.05.r20.8.dosagenodups.txt.gz | wc -l
+#57131
+peter@wheelerlab3:~/uMichiganFiles/UMich_dosages$ zcat chr22.maf0.05.r20.8.dosage.txt.gz | wc -l
+#57131
+#The SNP numbers on chr22 are the same, but it looks like the number of SNPs increased for all of the other chromsomes. I am not sure what this could be attributed to because chr 22 had duplicate SNPs.
+```
+
+I re-ran PrediXcan with this data.  After that, I used these most recent uMich files to make map files, which I will combine into one large map files for the --dosage association.
+```{bash}
+ plink --fam /home/peter/QC_Steps/QCStep2/QCStep2.fam --dosage dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/GWAS/maps2/mapall22.map --out /home/peter/GWAS/GAINSCZ2
+```
+
+```{r}
+GAINSCZ2<-fread("/home/peter/GWAS/GAINSCZ2.assoc.dosage",header=T)
+manhattan(GAINSCZ2, main = "Manhattan Plot", ylim = c(0, 10), cex = 0.6, cex.axis = 0.9, col = c("cyan2", "darkorange2"), chrlabs = c(1:22))
+qq(GAINSCZ2$P)
+```
+
+
