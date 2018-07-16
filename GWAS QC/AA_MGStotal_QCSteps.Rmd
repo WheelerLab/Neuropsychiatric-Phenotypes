@@ -1,0 +1,459 @@
+---
+title: "AA_MGStotal_QCSteps"
+author: "Peter Fiorica"
+date: "June 18, 2018"
+output: html_document
+---
+
+QCStep 0: Merging the nonGAIN dataset with the GAINdataset, setting heterozygous haploid genotypes as missing, performing sex check
+```{bash}
+plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep0/premerge_wGAIN --bmerge /home/peter/AA_GAIN_SCZ/AA_bfiles/Merged_AA_GAIN.bed /home/peter/AA_GAIN_SCZ/AA_bfiles/Merged_AA_GAIN.bim /home/peter/AA_GAIN_SCZ/AA_bfiles/Merged_AA_GAIN.fam --make-bed --out QCStep0
+
+plink --bfile QCStep0 --set-hh-missing --make-bed --out NoHH/QCStep0NoHH
+
+plink --bfile NoHH/QCStep0NoHH --check-sex --missing --out QCStep0SexCheck
+
+```
+
+
+QCStep 1: Identifying Unfiltered Genotyping Rate.
+```{bash}
+plink --bfile ../QCStep0/NoHH/QCStep0NoHH  --missing --out QCStep1
+```
+
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+```
+
+```{r}
+#The directories will appear slightly different when I am using R compared to command line because I am not using R on a Wheeler Lab desktop.
+
+"%&%"=function(a,b) paste(a,b,sep="")
+my.dir<-"Z://AA_nonGAIN_SCZ/QCSteps/"
+lmiss<-fread(my.dir%&%"QCStep1/QCStep1.lmiss",header = T)
+hist(lmiss$F_MISS) #This creates a histogram of the missingness of the data before we filter by genotyping rate.
+dim(lmiss)[1] #This tells us the number of SNPs we are working with before filtering by genotyping rate
+table(lmiss$F_MISS<0.01)
+table(lmiss$F_MISS<0.02)
+sum(lmiss$F_MISS<0.01)/(dim(lmiss)[1])
+sum(lmiss$F_MISS<0.02)/(dim(lmiss)[1])#The percent of SNPs have a genotyping call rate of 98%
+```
+
+QCStep2:Filtering SNPs by Genotyping Rate
+```{bash}
+plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep0/NoHH/QCStep0NoHH --geno 0.01 --make-bed --out /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2
+```
+
+QCStep3: Identifying Filtered Genotype Rate
+```{bash}
+plink --bfile ../QCStep2/QCStep2 --missing --out QCStep3
+```
+
+```{r}
+#Complete in R
+newimiss<-fread(my.dir%&%"QCStep3/QCStep3.imiss")
+hist(newimiss$F_MISS)
+newlmiss<-fread(my.dir%&%"QCStep3/QCStep3.lmiss")
+hist(newlmiss$F_MISS)
+dim(newlmiss)[1]
+```
+
+QCStep4: Filter by HWE
+```{bash}
+plink --bfile ../QCStep2/QCStep2 --hardy --out QCStep4
+```
+
+```{r}
+hwe<-fread(my.dir%&%"QCStep4/QCStep4.hwe",header =T)
+summary(hwe$P)
+hist(hwe$P)
+table(hwe$P<1e-06)
+table(hwe$P<1e-06)/sum(table(hwe$P<1e-06))
+# <.078% SNPs have P<1e-06
+```
+
+QCStep5: Identity by Descent Pruning
+
+(5A)
+```{bash}
+plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2 --indep-pairwise 50 5 0.3 --out QCStep5a
+#This step removed over 400,000 SNPs
+```
+
+(5B)
+```{bash}
+#When using the GAIN dataset alone, there were not enough objects to get a look at the IDB distribution when the threshold was 0.25, so we will start with 0.125
+plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2 --extract ../QCStep5A/QCStep5a.prune.in --genome --min 0.125 --out QCStep5B
+#There were only 77 objects that met this threshold so we will remove the threshold all together, similar to the way the GAIN dataset was handled.
+plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2 --extract ../QCStep5A/QCStep5a.prune.in --genome --out QCStep5B
+```
+
+```{r}
+ibd<-fread(my.dir %&% "QCStep5/QCStep5B/QCStep5B.genome",header=T)
+ggplot(data = ibd, aes(x=Z0,y=Z1))+geom_point(alpha=1/4)+theme_bw()
+##Now we can check for duplicates in the data
+dups<-data.frame()
+for( i in 1:dim(ibd)[1]){
+  if(as.character(ibd$IID1[i])==as.character(ibd$IID2[i])){
+    dups<-rbind(dups,ibd[i,])
+  }
+}
+dim(dups)
+#It looks like there are some individuals clustered at or around (0,0), suggesting that these individuals may be identical twins.  These individuals will need to be removed.
+hapmap <- filter(ibd,grepl('NA',IID1))
+#No hapmap individuals. No surpise.
+toExclude <- c(as.character(dups$IID1),as.character(hapmap$IID1))
+a <- as.character(ibd$IID1) %in% toExclude
+others <- ibd[a==FALSE,]
+#Isolating individuals that need to be removed.
+toremove<-filter(others,PI_HAT>=0.2)
+write.table(toremove,my.dir%&%"QCStep5/QCStep5B/Relate.to.remove.txt",quote=FALSE, row.names = FALSE)
+```
+
+(5C)
+```{bash}
+plink --bfile ../../QCStep2/QCStep2 --extract ../QCStep5A/QCStep5a.prune.in --het --out QCStep5c
+```
+
+```{r}
+HET<-fread(my.dir%&%"QCStep5/QCStep5C/QCStep5c.het",header =T)
+h=HET$"N(NM)"-HET$"O(HOM)"/HET$"N(NM)"
+oldpar = par(mfrow=c(1,2))
+hist(h,50)
+hist(HET$F,50)
+summary(HET$F)
+abline(v=mean(HET$F)+6*sd(HET$F),col="red")
+abline(v=mean(HET$F)-6*sd(HET$F),col="red")
+
+sortHET <- HET[order(HET$F),]
+outliers <- data.table()
+
+for(i in 1:length(sortHET$F)){
+  if(sortHET[i,6] > (mean(sortHET$F)+3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+  if(sortHET[i,6] < (mean(sortHET$F)-3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+}
+
+hetoutliers <- select(outliers, FID, IID)
+dim(hetoutliers)
+#There are 38 heterozygosity outliers
+write.table(allexclude2, file = my.dir%&%"QCStep5/QCStep5C/HetOutliers.txt", quote = F, col.names = T, row.names = F)
+
+```
+
+(5D)
+```{bash}
+plink --bfile ../../QCStep2/QCStep2 --extract ../QCStep5A/QCStep5a.prune.in --remove ../QCStep5B/Relate.to.remove.txt --genome --out QCStep5D
+
+
+plink --bfile ../../QCStep2/QCStep2 --extract ../QCStep5A/QCStep5a.prune.in --remove ../QCStep5B/Relate.to.remove.txt --make-bed --out QCStep5D
+```
+
+```{r}
+IBD<-fread(my.dir %&% "QCStep5/QCStep5D/QCStep5D.genome",header=T)
+ggplot(data = IBD, aes(x=Z0,y=Z1))+geom_point(alpha=1/4)+theme_bw()
+```
+
+(5E)
+```{bash}
+#Second Heterozygous Check
+plink --bfile ../QCStep5D/QCStep5D  --het --extract ../QCStep5A/QCStep5a.prune.in --remove ../QCStep5B/Relate.to.remove.txt --out QCStep5E
+```
+
+```{r}
+#Repeat the steps after Step 5C
+HET<-fread(my.dir%&%"QCStep5/QCStep5E/QCStep5E.het",header =T)
+h=HET$"N(NM)"-HET$"O(HOM)"/HET$"N(NM)"
+oldpar = par(mfrow=c(1,2))
+hist(h,50)
+hist(HET$F,50)
+summary(HET$F)
+abline(v=mean(HET$F)+6*sd(HET$F),col="red")
+abline(v=mean(HET$F)-6*sd(HET$F),col="red")
+
+sortHET <- HET[order(HET$F),]
+outliers <- data.table()
+
+for(i in 1:length(sortHET$F)){
+  if(sortHET[i,6] > (mean(sortHET$F)+3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+  if(sortHET[i,6] < (mean(sortHET$F)-3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+}
+
+hetoutliers <- select(outliers, FID, IID)
+dim(hetoutliers)
+##The outliers are the same, so the individuals from Step 5C will be removed
+```
+
+(5F)
+```{bash}
+#Remove Heterozygosity outliers
+plink --bfile ../QCStep5D/QCStep5D --remove ../QCStep5C/HetOutliers.txt --make-bed --out QCStep5F
+```
+
+6: Merge With HapMap Data for PCA
+```{r}
+#Dependent on the genotyping platoform used (i.e. Affymatrix, Illumina, etc.),
+#the SNP identifiers are recorded differently (rsID, SNP_A-#, AFFY-SNP-#).
+#The hapmap individuals are recorded by rsID, and they share different positions from SNP_A-#.
+#This means that we have to change the MGS data identifiers to rsID.
+
+TotalSNPs<-fread("Z://AA_GAIN_SCZ/summarystatistics.txt",header=T)
+#The summary statistics from the dbGaP data containing information that contains an rsID and position for each SNP_A-#
+SelectSNPs<-dplyr::select(TotalSNPs,"MarkerAccession","ChrID", "ChrPosition","SubmittedSNPID")
+#Isolates the positions we need to merge with a .bim file
+bim<-fread("Z://AA_nonGAIN_SCZ/QCSteps/QCStep5/QCStep5F/QCStep5F.bim", header = F)
+#Reading in the last .bim from QC
+
+mergedbim <- left_join(bim, SelectSNPs, by = c("V1" = "ChrID", "V4" = "ChrPosition"))
+mergedbim2 <- mutate(mergedbim,snp=ifelse(is.na(`Marker accession`),V2, `Marker accession`))
+newbim <- dplyr::select(mergedbim2,V1,snp,V3,V4,V5,V6)
+filetest2<-newbim[!duplicated.data.frame(newbim),]
+
+write.table(filetest2,"Z:/AA_nonGAIN_SCZ/QCSteps/QCStep5/QCStep5F/newbim.bim",quote=F, sep="\t",row.names=F,col.names=F)
+```
+
+```{bash}
+#Syncronizing the bfiles
+plink --fam QCStep5F.fam --bed QCStep5F.bed --bim newbim.bim --make-bed --out newbfiles
+```
+
+(6A)
+```{bash}
+#Merging with the HapMap bfiles
+#Note that my bfiles are still in hg18 build
+plink --bfile ../newbfiles --bmerge ../HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.bed ../HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.bim ../HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.fam --make-bed --out QCStep6A
+```
+
+(6B)
+```{bash}
+plink  --bfile ../HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig --exclude ../QCStep6A/QCStep6A-merge.missnp --make-bed --out QCStep6B
+```
+
+(6C)
+```{bash}
+plink --bfile ../newbfiles --bmerge ../QCStep6B/QCStep6B.bed ../QCStep6B/QCStep6B.bim ../QCStep6B/QCStep6B.fam --make-bed --out QCStep6C
+```
+
+(6D)
+```{bash}
+plink --bfile ../QCStep6C/QCStep6C --geno 0.2 --maf 0.05 --make-bed --out QCStep6D
+```
+
+(6E)
+```{bash}
+plink --bfile ../QCStep6D/QCStep6D --indep-pairwise 50 5 0.3 --recode --out QCStep6E
+
+awk '{print $1,$2,$3,$4,$5,1}' ../QCStep6D/QCStep6D.fam > QCStep6E.fam
+```
+
+(6F)
+```{bash}
+perl ../make_par_file.pl ../QCStep6E/QCStep6E 0 > QCStep6F.par
+
+smartpca -p QCStep6F.par
+
+#I also want to see how plinks PCA compares to EIGENSOFT pca,
+#So I also ran the next command:
+
+plink --bfile QCStep6D --pca --out QCStep6D_PCA
+```
+
+Step 7: Plotting PCA data
+
+
+```{r}
+hapmappopinfo<-read.table("Z://AA_nonGAIN_SCZ/QCSteps/QCStep6/HAPMAP3_hg18/MyDirectory_pop_HM3_hg18_forPCA.txt")%>%select(V1,V3)
+#Reading in the original file above gave me some issues
+#Becayse I copied the original folder from wheelerlab1 to my directory, 
+#so that I could run R command on my laptop remotely
+#As a result, R would not let me open the file until I copied the file in my directory
+colnames(hapmappopinfo) <- c("pop","IID")
+fam<-read.table(my.dir%&%"QCStep6/QCStep6E/QCStep6E.fam")%>%select(V1,V2)#This is the last .fam file that was made in the QC process
+colnames(fam) <- c("FID","IID")
+popinfo <- left_join(fam,hapmappopinfo,by="IID")
+popinfo <-mutate(popinfo, pop=ifelse(is.na(pop),'GWAS',as.character(pop)))
+table(popinfo$pop)
+#EIGENSOFT PCA Result
+pcs<-read.table(my.dir%&%"QCStep6/QCStep6E/QCStep6E.evec",skip=1)
+pcdf <- data.frame(popinfo, pcs[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwas <- filter(pcdf,pop=='GWAS')
+hm3 <- filter(pcdf, grepl('NA',IID))
+eval<-scan(my.dir%&%"QCStep6/QCStep6E/QCStep6E.eval")[1:10]
+round(eval/sum(eval),3)#Calculate the percent explained by each PC
+
+#PLINK PCA results
+pcsplink<-read.table(my.dir%&%"QCStep6/QCStep6D/QCStep6D_PCA.eigenvec")
+pcdfplink <- data.frame(popinfo, pcsplink[,2:21]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11,PC11=V12,PC12=V13,PC13=V14,PC14=V15,PC15=V16,PC16=V17,PC17=V18,PC18=V19,PC19=V20,PC20=V21)
+gwasplink <- filter(pcdfplink,pop=='GWAS')
+hm3plink <- filter(pcdfplink, grepl('NA',IID))
+eval<-scan(my.dir%&%"QCStep6/QCStep6D/QCStep6D_PCA.eigenval")[1:20]
+
+#Plotting the Data EIGENSOFT
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwas,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+
+#Plotting the Data: PLINK
+ggplot() + geom_point(data=gwasplink,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3plink,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasplink,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3plink,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasplink,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3plink,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+#This plot most closely resemples the EIGENSOFT PC2 vs PC1 plot
+
+#When looking at each plot the band of GWAS individuals(green) extend beyond the YRI indivudals (purple)
+#This needs to be filtered further because the Yoruba people are homogenously reproducing individuals in Africa
+#For the purposes of this PCA, that cluster of individuals should be the limit of the band.
+#To address this, I recompleted step 6D and after with a genotyping threshold of 0.1
+```
+
+
+PCA for Genotyping threshold of 0.1
+```{r}
+pcsgeno0.1<-read.table(my.dir%&%"QCStep6/QCStep6E/QCStep6E_geno0.1.evec",skip=1)
+pcdfgeno0.1 <- data.frame(popinfo, pcs[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwasgeno0.1 <- filter(pcdfgeno0.1,pop=='GWAS')
+hm3geno0.1 <- filter(pcdfgeno0.1, grepl('NA',IID))
+evalgeno0.1<-scan(my.dir%&%"QCStep6/QCStep6E/QCStep6E_geno0.1.eval")[1:10]
+round(eval/sum(evalgeno0.1),3)#Calculate the percent explained by each PC
+
+#PLINK PCA results
+pcsplinkgeno0.1<-read.table(my.dir%&%"QCStep6/QCStep6D/QCStep6D_geno0.1_pca.eigenvec")
+pcdfplinkgeno0.1 <- data.frame(popinfo, pcsplinkgeno0.1[,2:21]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11,PC11=V12,PC12=V13,PC13=V14,PC14=V15,PC15=V16,PC16=V17,PC17=V18,PC18=V19,PC19=V20,PC20=V21)
+gwasplinkgeno0.1 <- filter(pcdfplinkgeno0.1,pop=='GWAS')
+hm3plinkgeno0.1 <- filter(pcdfplink, grepl('NA',IID))
+evalplinkgeno0.1<-scan(my.dir%&%"QCStep6/QCStep6D/QCStep6D_geno0.1_pca.eigenval")[1:20]
+
+#Plots of PCA for Geno 0.1: EIGENSOFT
+ggplot() + geom_point(data=gwasgeno0.1,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3geno0.1,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasgeno0.1,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3geno0.1,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasgeno0.1,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3geno0.1,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+
+#Plots of PCa fo Geno 0.1: PLINK
+ggplot() + geom_point(data=gwasplinkgeno0.1,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3plinkgeno0.1,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasplinkgeno0.1,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3plinkgeno0.1,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasplinkgeno0.1,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3plinkgeno0.1,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+#These plot still look similar to the 0.2 genotyping threshold. I am going to try 0.01.
+
+
+
+```
+
+#Skip the PCA with a threshold of 0.01 and go directly to PCA with `--geno 0.01` and `--chr 1-22`
+PCA for Genotyping threshold of 0.01
+```{r}
+pcsgeno0.01<-read.table(my.dir%&%"QCStep6/QCStep6E/QCStep6E_geno0.01.evec",skip=1)
+pcdfgeno0.01 <- data.frame(popinfo, pcsgeno0.01[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwasgeno0.01 <- filter(pcdfgeno0.01,pop=='GWAS')
+hm3geno0.01 <- filter(pcdfgeno0.01, grepl('NA',IID))
+evalgeno0.01<-scan(my.dir%&%"QCStep6/QCStep6E/QCStep6E_geno0.01.eval")[1:10]
+round(eval/sum(evalgeno0.01))#Calculate the percent explained by each PC
+```
+
+```{r}
+#PLINK PCA results
+pcsplinkgeno0.01<-read.table(my.dir%&%"QCStep6/QCStep6D/QCStep6D_geno0.01.eigenvec")
+pcdfplinkgeno0.01 <- data.frame(popinfo, pcsplinkgeno0.01[,2:21]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11,PC11=V12,PC12=V13,PC13=V14,PC14=V15,PC15=V16,PC16=V17,PC17=V18,PC18=V19,PC19=V20,PC20=V21)
+gwasplinkgeno0.01 <- filter(pcdfplinkgeno0.01,pop=='GWAS')
+hm3plinkgeno0.01 <- filter(pcdfplinkgeno0.01, grepl('NA',IID))
+evalplinkgeno0.01<-scan(my.dir%&%"QCStep6/QCStep6D/QCStep6D_geno0.01.eigenval")[1:20]
+```
+
+```{r}
+#Plots of PCA for Geno 0.01: EIGENSOFT
+ggplot() + geom_point(data=gwasgeno0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3geno0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasgeno0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3geno0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasgeno0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3geno0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+```
+
+```{r}
+#Plots of PCa fo Geno 0.01: PLINK
+ggplot() + geom_point(data=gwasplinkgeno0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3plinkgeno0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasplinkgeno0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3plinkgeno0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasplinkgeno0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3plinkgeno0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+```
+
+#PCA with --geno 0.01 and --chr 1-22
+The band of GWAS individuals in the PC plots extends past the YRI individuals.  Dr. Wheeler recommended removing the X chromomsome so I plan re-running 6C and after.
+(6D)
+```{bash}
+plink --bfile ../QCStep6C/QCStep6C --chr 1-22 --geno 0.01 --maf 0.05 --make-bed --out QCStep6D_noX_geno0.01
+```
+
+(6E)
+```{bash}
+plink --bfile ../QCStep6D/QCStep6D_noX_geno0.01 --chr 1-22 --indep-pairwise 50 5 0.3 --recode --out QCStep6E_noX_geno0.01
+
+awk '{print $1,$2,$3,$4,$5,1}' ../QCStep6D/QCStep6D_noX_geno0.01.fam > QCStep6E_noX_geno0.01.fam
+
+```
+
+(6F)
+```{bash}
+perl ../make_par_file.pl ../QCStep6E/QCStep6E_noX_geno0.01 0 > QCStep6F_noX_geno0.01.par
+
+smartpca -p QCStep6F_noX_geno0.01.par
+```
+
+(6G)
+```{bash}
+plink --bfile ../QCStep6D/QCStep6D_noX_geno0.01 --chr 1-22 --extract ../QCStep6E/QCStep6E_noX_geno0.01.prune.in --make-bed --out QCStepG_noX_geno0.01
+
+plink --bfile QCStepG_noX_geno0.01 --pca 10 --out QCStep6G_PCA
+```
+
+Step 7: Plotting PCA data
+```{r}
+#EIGENSOFT
+pcsgenonox0.01<-read.table(my.dir%&%"QCStep6/QCStep6E/QCStep6E_noX_geno0.01.evec",skip=1)
+pcdfgenonox0.01 <- data.frame(popinfo, pcsgenonox0.01[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwasgenonox0.01 <- filter(pcdfgenonox0.01,pop=='GWAS')
+hm3genonox0.01 <- filter(pcdfgenonox0.01, grepl('NA',IID))
+evalgenonox0.01<-scan(my.dir%&%"QCStep6/QCStep6E/QCStep6E_noX_geno0.01.eval")[1:10]
+round(eval/sum(evalgenonox0.01))#Calculate the percent explained by each PC
+
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+```
+
+```{r}
+#PLINK
+plinkpcsnoX_geno0.01<-read.table(my.dir%&%"QCStep6/QCStep6G/QCStep6G_PCA.eigenvec")
+plinkpcdfnoX_geno0.01 <- data.frame(popinfo, plinkpcsnoX_geno0.01[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwasnoX_geno0.01 <- filter(plinkpcdfnoX_geno0.01,pop=='GWAS')
+hm3noX_geno0.01 <- filter(plinkpcdfnoX_geno0.01, grepl('NA',IID))
+evalnoX_geno0.01<-scan(my.dir%&%"QCStep6/QCStep6G/QCStep6G_PCA.eigenval")[1:10]
+round(eval/sum(evalnoX_geno0.01),3)#Calculate the percent explained by each PC
+
+ggplot() + geom_point(data=gwasnoX_geno0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3noX_geno0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasnoX_geno0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3noX_geno0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasnoX_geno0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3noX_geno0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+```
