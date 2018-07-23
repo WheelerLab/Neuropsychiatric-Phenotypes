@@ -1,0 +1,65 @@
+---
+title: "Imputation_Prep"
+author: "Peter Fiorica"
+date: "July 16, 2018"
+output: html_document
+---
+
+```{bash}
+plink --bfile /home/peter/AA_nonGAIN_SCZ/liftover/hg19_forImputationPrep --freq --out newfreq
+
+perl /home/peter/AA_GAIN_SCZ/Imputation/preImputation/HRC-1000G-check-bim.pl -b /home/peter/AA_nonGAIN_SCZ/liftover/hg19_forImputationPrep.bim -f newfreq.frq -r all.caapa.sorted.txt -h
+
+#Options Set:
+#Reference Panel:             HRC
+#Bim filename:                /home/peter/AA_nonGAIN_SCZ/liftover/hg19_forImputationPrep.bim
+#Reference filename:          all.caapa.sorted.txt
+#Allele frequencies filename: newfreq.frq
+#Allele frequency threshold:  0.2
+
+
+#Position Matches
+ #ID matches HRC 0
+ #ID Doesn't match HRC 712337
+ #Total Position Matches 712337
+#ID Match
+ #Different position to HRC 0
+#No Match to HRC 132
+#Skipped (X, XY, Y, MT) 0
+#Total in bim file 712469
+#Total processed 712469
+
+#Indels (ignored in r1) 0
+
+#SNPs not changed 128351
+#SNPs to change ref alt 479078
+#Strand ok 390879
+#Total Strand ok 607429
+
+#Strand to change 299599
+#Total checked 712337
+#Total checked Strand 690478
+#Total removed for allele Frequency diff > 0.2 45897
+#Palindromic SNPs with Freq > 0.4 15364
+
+
+#Non Matching alleles 6495
+#ID and allele mismatching 6495; where HRC is . 6491
+#Duplicates removed 0
+```
+
+In the above command, we made the file "Run-plink.sh". This file contains every plink command that we need for the next command.  Before running the command, I moved the hg19_ForImputation bfiles to the working directory :/home/peter/AA_nonGAIN_SCZ/Imputation/PreImputation/
+
+
+```{bash}
+bash Run-plink.sh
+#The command above performed an independent plink command on each chromosome
+
+bash plink2vcf.sh
+#The command above performs an idenpedent plink command on each chromsome so that the files are the converted to a .vcf for imputation
+
+ bash vcfzip.sh
+ #the command above zips and sorts each vcf file for imputation
+```
+
+The zipped VCF files may now be uploaded for imputation.
