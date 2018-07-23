@@ -1,0 +1,23 @@
+---
+tytitle: "Changing SNP Identifier Names"
+author: "Peter Fiorica"
+date: "June 30, 2018"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(data.table)
+```
+
+After trying to merge the genotypes from GRU with the SARC consent group, there are 2919 SNPs with the same position, but named differently.
+(grep -c same AAnonGAIN_SCZ_start.log
+2929)
+
+There are 223,793 heterozygous haploids listed in the .hh file
+
+```{bash}
+plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/AAnonGAIN_SCZ_start --list-duplicate-vars --out SamePos
+
+plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/AAnonGAIN_SCZ_start  --exclude /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep0/SamePos.dupvar --make-bed --out premerge_wGAIN
+```
