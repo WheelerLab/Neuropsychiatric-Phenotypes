@@ -9,9 +9,9 @@ As of right now, the imputation filtering pipeline using the plink commands and 
 
 For plink, the error is that there are duplicate IDs that do not get removed by --exclude plink.dupvar
 For python, the error is:
-#  File "UMich_vcf2pxfixCAAPA.py", line 71, in <module>
-#      (rs, pos, a0, a1) = arr[0].split(":")
-#  ValueError: too many values to unpack
+  File "UMich_vcf2pxfixCAAPA.py", line 71, in <module>
+      (rs, pos, a0, a1) = arr[0].split(":")
+  ValueError: too many values to unpack
 
 The plink commands seem to be faster and cleaner than the python script, but a third alternative option is to use vcftools.
 This option could be used in conjunction with plink to remove duplicates early, and filter by r2 and maf in plink
