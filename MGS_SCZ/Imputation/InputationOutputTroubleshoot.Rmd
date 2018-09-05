@@ -1,5 +1,5 @@
 ---
-title: "Troubleshooting Imputation Filering"
+title: "Troubleshooting Imputation Filtering"
 author: "Peter Fiorica"
 date: "9/5/2018"
 output: html_document
