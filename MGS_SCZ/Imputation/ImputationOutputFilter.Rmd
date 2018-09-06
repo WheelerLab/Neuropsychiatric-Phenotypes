@@ -1,0 +1,146 @@
+---
+title: "UMichFileFiltering"
+author: "Peter Fiorica"
+date: "August 11, 2018"
+output: html_document
+---
+
+This is document contains notes for filtering the UMich .vcf outputs by MAF and R^2 using plink commands
+
+Dr. Wheeler recommended a series of plink commands that Angela used to filter the files.  
+See link:https://www.biostars.org/p/205856/
+
+The commands for one chromosome are as follows:
+```{bash}
+do
+  gunzip chr$chnum.info.gz #This unzips an info file from UMich
+  plink --vcf chr$chnum.dose.vcf.gz --make-bed --out s1 #This turns the vcf doses into bfiles #note that they will not have phenotypes associated with them 
+  plink --bfile s1 --bmerge s1 --merge-mode 6 #for detecting non-biallelic variants
+  plink --bfile s1 --exclude plink.missnp --make-bed --out s2 #excludes non-biallelic variants
+  plink --bfile s2 --list-duplicate-vars #lists duplicates
+  plink --bfile s2 --exclude plink.dupvar --make-bed --out s3 #excludes duplicates
+  plink --bfile s3 --qual-scores chr$chnum.info 7 1 1 --qual-threshold 0.3 --make-bed --out  ../plinkout/chr$chnum #Filters by an r^2 of .3
+done
+#create file merge.list that contains the directory of each chromosome
+plink --bfile ../plinkout/1 merge-list merge.list --make-bed --out imputepostqc
+```
+
+In the commands above, there are some changes that need to be made.
+First, the command to exclude non biallelic variants does not run correctly in every chromosome.  
+If this does not run properly, it stops the entire set of commands because output from it is needed for other commands. The same notion applies to the exclude duplicates command.
+Lastly, the 0.3 needs to be adjusted to 0.8 and a --maf 0.01 tag needs to be added to filter SNPs.
+
+Adjusted command set:
+```{bash}
+plink --vcf chr$chnum.dose.vcf.gz --make-bed --out s1 #This turns the vcf doses into bfiles #note that they will not have phenotypes associated with them
+  plink --bfile s1 --qual-scores chr$chnum.info 7 1 1 --qual-threshold 0.8 --maf 0.01 --make-bed --out  ../plinkout/chr$chnum
+  
+plink --bfile chr1 --merge-list chrbfileslist --make-bed -out CAAPAFiltered
+```
+
+I ran the script on CAAPA, and there are 7.9 millions SNPs that passed the filters.
+
+1000G:
+```{bash}
+ plink --vcf /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/chr${chnum}.dose.vcf.gz --make-bed --out s1
+plink --bfile s1 --exclude plink.missnp --make-bed --out s2 #excludes non-biallelic variants
+plink --bfile s1 --qual-scores/home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/chr${chnum}.info 7 1 1 --qual-threshold 0.8 --maf 0.01 --make-bed --out /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFiltered/chr${chnum}
+                
+#Unlike CAAPA, there are duplicate SNPs in the data imputed from the 1000G reference panel.  
+#The initial set of plink commands should be used to ensure that duplicates are removed from the dataset before making 
+
+plink --vcf /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/chr${chnum}.dose.vcf.gz --biallelic-only --make-bed --out s11000G
+plink --bfile s11000G --list-duplicate-vars #lists duplicates 
+plink --bfile s11000G --exclude plink.dupvar --make-bed --out s21000G #excludes duplicates
+plink --bfile s21000G --qual-scores /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/chr$chnum.info 7 1 1 --qual-threshold 0.8 --maf 0.01 --make-bed  --out /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFiltered/chr${chnum}
+```
+
+#The first two commands above fine ran correctly, but the --exclude .dupvar command is not excluding IDs for the next file
+PLINK v1.90b4.4 64-bit (21 May 2017)           www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to s11000G.log.
+Options in effect:
+  --bfile s11000G
+  --exclude plink.dupvar
+  --make-bed
+  --out s11000G
+
+515881 MB RAM detected; reserving 257940 MB for main workspace.
+Note: --make-bed input and output filenames match.  Appending '~' to input
+filenames.
+1525688 variants loaded from .bim file.
+2256 people (0 males, 0 females, 2256 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to s11000G.nosex .
+--exclude: 1525567 variants remaining.
+#Warning: At least 45 duplicate IDs in --exclude file. #This seems as though these should be removed from the main dataset; however, they have not been.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 2256 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+1525567 variants and 2256 people pass filters and QC.
+Note: No phenotypes present.
+--make-bed to s11000G.bed + s11000G.bim + s11000G.fam ... done.
+
+#The next command that creates the chr#.bfile set is giving an error:
+PLINK v1.90b4.4 64-bit (21 May 2017)           www.cog-genomics.org/plink/1.9/
+(C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
+Logging to /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFilteredchr15.log.
+Options in effect:
+  --bfile s11000G
+  --maf 0.01
+  --make-bed
+  --out /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFilteredchr15
+  --qual-scores /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/chr15.info 7 1 1
+  --qual-threshold 0.8
+
+515881 MB RAM detected; reserving 257940 MB for main workspace.
+1404102 variants loaded from .bim file.
+2256 people (0 males, 0 females, 2256 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to
+/home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFilteredchr15.nosex
+.
+#Error: Duplicate ID '15:20001075'.
+#This ID is not listed in the plink.dupvar file
+
+Angela recommended using vcftools to filter duplicates out of the .vcf files.
+
+Additionally, I am going to use the python script to see how it compares to others.
+Output numbers:
+CAAPA:5413664 Python Script
+CAAPA: 7.9 million plink
+
+#When I use the python script for 1000G and HRC dataset, I get the error:
+
+Traceback (most recent call last):
+  File "UMich_vcf2pxfixCAAPA.py", line 71, in <module>
+    (rs, pos, a0, a1) = arr[0].split(":")
+ValueError: too many values to unpack
+
+#See document titled "ImputationOutputTroubleshoot"
+#This document explains the solution to the plink issue
+
+An alternative option to this issue is to write a snplist
+```{bash}
+plink --bfile 1000Gc22biallelic --write-snplist --out all22snps1000G
+#This writes us a list of all the SNPs on the chromosome.
+cat all22snps1000G.snplist | sort | uniq -d > duplicated22snps1000G.snplist
+#This creates a list of duplicates based on the snplist
+plink --bfile 1000Gc22biallelic --exclude  duplicated22snps1000G.snplist --make-bed --out 1000Gc22nodups
+#this removes the duplicates on the snplist
+plink --bfile 1000Gc22nodups --qual-scores /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/chr22.info 7 1 1 --qual-threshold 0.8 --maf 0.01 --make-bed  --out /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFiltered/chr22
+#This  makes the final bfile set for the chromsome filted by r2 and maf
+```
+This needs to be made into a for loop for each chromosome.
+The final bash script is /home/peter/AA_nonGAIn_SCZ/Imputation/UMichResults/1000G/UMichFilter1000G.sh
+
+```{bash}
+plink --bfile chr1 --merge-list chrbfileslist --make-bed --out 1000GFilteredPlink
+
+plink --bfile chr1 --merge-list chrbfileslist --make-bed --out HRCFilteredPlink
+CAAPA:5413664 Python Script
+CAAPA: 7.9 million plink
+
+1000G:12,780,487 plink (446,189 duplicated SNP IDs removed)
+
+HRC: 11,915,561 plink (109,146 duplicated SNP IDs removed)
+```
+
