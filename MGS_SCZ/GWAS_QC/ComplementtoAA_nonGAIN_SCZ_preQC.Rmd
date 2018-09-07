@@ -1,0 +1,97 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+These are separate notes that were to be used in complement to the environment created from "AA_nonGAIN_SCZ_preQC_Steps.Rmd"
+
+```{r}
+GRUCaseAncestry<-GRUphenocases$phv00071341.v1.p1.c1
+table(GRUCaseAncestry)
+naming3<-as.character(GRUphenocases[1,])
+colnames(GRUphenocases)<-naming3
+GRUphenocases<-GRUphenocases[-1,]
+
+table(SARCphenocases$phv00071341.v1.p1.c2)
+naming4<-as.character(SARCphenocases[1,])
+colnames(SARCphenocases)<-naming4
+SARCphenocases<-SARCphenocases[-1,]
+
+naming5<-as.character(GRUphenocontrols[1,])
+colnames(GRUphenocontrols)<-naming5
+GRUphenocontrols<-GRUphenocontrols[-1,]
+```
+##There are only 105 total self-identified African Americans in this cohort.
+
+```{r}
+#The first 20 individuals in SARCphenocase file are AA
+#The first x amount of rows in each phenotype file is 
+AA_SARCphenocases<-SARCphenocases[1:20,]
+AA_GRUphenocases<-GRUphenocases[1:85,]
+AA_GRUphenocontrols<-GRUphenocontrols[1:21,]
+```
+
+
+```{r}
+#Since the plink files become desynchronized when I create a .fam file from R of different individuals.  I am making a list of AA individuals to "keep" in plink.
+GRUphenocase<-left_join(AA_GRUphenocases,AllID4Geno,by="dbGaP SubjID")
+IDAA_GRUcases<-dplyr::select(GRUphenocase,"SAMPID_NG-format")
+
+GRUphenocontrol<-left_join(AA_GRUphenocontrols,AllID4Geno,by="dbGaP SubjID")
+IDAA_GRUcontrols<-dplyr::select(GRUphenocontrol,"SAMPID_NG-format")
+
+SARCcases<-left_join(AA_SARCphenocases,AllID4Geno,by="dbGaP SubjID")
+SARCfamIDs<-left_join(SARCcases,SARCfam,by=c("SAMPID_NG-format"="V1"))
+IDAA_SARCcases<-select(SARCfamIDs, "SAMPID_NG-format", "V2")
+
+GRUIDsAll<-rbind(IDAA_GRUcases,IDAA_GRUcontrols)
+GRUfamIDs<-left_join(GRUIDsAll,GRUfam,by=c("SAMPID_NG-format"="V1"))
+row.has.na <- apply(GRUfamIDs, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+GRUfamIDS1<-GRUfamIDs[!row.has.na,]
+GRUIDs2<-dplyr::select(GRUfamIDS1, "SAMPID_NG-format", "V2")
+                       
+fwrite(GRUIDs2,"Z://AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c1.GRU/AA_GRUlist.txt",col.names = F,row.names = F, sep = " ",quote = F)
+
+fwrite(IDAA_SARCcases,"Z://AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c2.SARC/AA_SARClist.txt",col.names = F,row.names = F, sep=" ", quote= F)
+
+```
+                    
+                    
+```{bash}
+plink --bfile nonGAIN_Schizophrenia_consent_GRU --keep AA_GRUlist.txt  --make-bed --out AAbfilesnopheno
+
+plink --bfile nonGAIN_Schizophrenia_consent_SARC --keep AA_SARClist.txt  --make-bed --out AAbfilesnophenoSARC
+```
+
+```{bash}
+#for some reason, all of the phenotypes are now identified as -9... This does not make too much sense so I am going to try to change this
+awk -v s=1 '{print $1, $2 , $3, $4, $5, $6+11 }' AAbfilesnophenoSARC.fam > AAbfilesWphenoSARC.fam
+#Since all of these individuals are in the SARC consent group, they are all cases.  I can just make their phenotype 2
+
+plink --bed AAbfilesnophenoSARC.bed --bim AAbfilesnophenoSARC.bim --fam AAbfilesWphenoSARC.fam --make-bed --out AAbfilesWphenoSARC1
+```
+
+
+```{r}
+
+GRUfamcases<-left_join(IDAA_GRUcases,GRUfamIDS1, by="SAMPID_NG-format")
+row.has.na <- apply(GRUfamcases, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+GRUcasesfam<-GRUfamcases[!row.has.na,]
+GRUcasesfam$V6=2 ##This completely identifies which values are cases
+
+GRUfamcontrols<-left_join(IDAA_GRUcontrols,GRUfamIDS1, by="SAMPID_NG-format")
+row.has.na <- apply(GRUfamcontrols, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+GRUcontrolsfam<-GRUfamcontrols[!row.has.na,]
+GRUcontrolsfam$V6=1
+
+GRUfamfinal<-rbind(GRUcontrolsfam,GRUcasesfam)
+fwrite(GRUfamfinal,"Z://AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c1.GRU/AAGRUbfilesWpheno.fam",row.names = F, col.names = F, sep = " ",quote = F)
+```
+
+```{bash}
+plink --bed AAbfilesnopheno.bed --bim AAbfilesnopheno.bim --fam AAGRUbfilesWpheno.fam --make-bed --out AAbfilesWphenoGRU
+
+plink --bfile /home/peter/AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c2.SARC/AAbfilesWphenoSARC1 --bmerge /home/peter/AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c1.GRU/AAbfilesWphenoGRU  --make-bed --out/home/peter/AA_nonGAIN_SCZ/QCSteps/AAnonGAIN_SCZ_start
+```
