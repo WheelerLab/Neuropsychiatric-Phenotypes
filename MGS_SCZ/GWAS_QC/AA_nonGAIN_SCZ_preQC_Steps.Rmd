@@ -1,0 +1,166 @@
+---
+title: "AA_nonGAIN_SCZ_preQC_Steps"
+author: "Peter Fiorica"
+date: "May 22, 2018"
+output: html_document
+---
+
+1. Copy files from dbGaP directory in Wheelerlab3 to my directory.
+```{bash}
+#Genotypes
+$cp phg000037.v1.p1.nonGAIN_Schizophrenia.genotype-calls-matrixfmt.c2.SARC.tar /home/peter/AA_nonGAIN_SCZ/
+$cp phg000037.v1.p1.nonGAIN_Schizophrenia.genotype-calls-matrixfmt.c1.GRU.tar /home/peter/AA_nonGAIN_SCZ/
+#Phenotypes
+$cp phs000167.v1.pht000714.v1.p1.c2.nonGAIN_Schizophrenia_cases.SARC.txt.gz /home/peter/AA_nonGAIN_SCZ/
+$cp phs000167.v1.pht000714.v1.p1.c1.nonGAIN_Schizophrenia_cases.GRU.txt.gz /home/peter/AA_nonGAIN_SCZ/
+  #repeat this process for the pht000715 and pht000716 for both the GRU and SARC groups
+```
+
+2. Extract the contents of the .tar genotypes
+```{bash}
+#Be sure to view the contents of the tar folder before extracting.  You can do this using `tar -tf filename.tar.gz`
+$tar -xvf phg000037.v1.p1.nonGAIN_Schizophrenia.genotype-calls-matrixfmt.c1.GRU.tar
+$tar -xvf phg000037.v1.p1.nonGAIN_Schizophrenia.genotype-calls-matrixfmt.c2.SARC.tar
+#Now, you have access to the bfiles for each consent group.
+```
+
+3.Confirming that their is a phenotype for every genotype:
+```{bash}
+zcat /home/peter/AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c1.GRU/nonGAIN_Schizophrenia_consent_GRU.fam.gz | wc -l
+#2651;This is the number of people that are included in the initial genotype data for the GRU group
+zcat /home/peter/AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c2.SARCnonGAIN_Schizophrenia_consent_SARC.fam.gz | wc -l
+#350
+
+##Cases for each consent group:
+GRU:1274
+SARC:322
+
+#Controls_main for each consent group
+GRU:1395
+SARC:The table is intentionally blank because it does not include subjects for the SARC consent group 
+
+#Controls_questionnaire for each consent group
+GRU:1395
+SARC:The table is intentionally blank because it does not include subjects for the SARC consent group
+```
+
+4. Isolating the AA genotype and phenotype data from the EA genotype and phenotype data:
+
+```{r}
+library(dplyr)
+library(data.table)
+```
+
+#Read in data containing genotype and phenotype information for all individuals
+```{r}
+SARCfam<-fread("z://AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c2.SARC/nonGAIN_Schizophrenia_consent_SARC.fam",header=F)  #The .fam (genotype) file for individuals in the "Scizophrenria and Related Conditions (SARC)" consent group.
+GRUfam<-fread("z://AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c1.GRU/nonGAIN_Schizophrenia_consent_GRU.fam",header =F) #The .fam (genotype) file for individuals in the "General Research Use" consent group.
+SARCphenocases<-fread("Z://AA_nonGAIN_SCZ/phs000167.v1.pht000714.v1.p1.c2.nonGAIN_Schizophrenia_cases.SARC.txt",header=T) #The phenotype file confirming case for individuals in the "Scizophrenria and Related Conditions (SARC)" consent group. All individuas in the SARC group are cases.
+GRUphenocases<-fread("Z://AA_nonGAIN_SCZ/phs000167.v1.pht000714.v1.p1.c1.nonGAIN_Schizophrenia_cases.GRU.txt",header=T) #The case phenotype file for individuals in the "General Research Use" consent group.
+GRUphenocontrols<-fread("Z://AA_nonGAIN_SCZ/phs000167.v1.pht000715.v1.p1.c1.nonGAIN_Schizophrenia_controls_main.GRU.txt",header =T) #The control phenotype file for individuals in the "General Research Use" consent group.
+```
+
+The .fam files do not include the phenotype data (a 1 or 2 in the last column) for any of the files.  Most of the time they should.
+This means that the files must be merged together by individual to ensure that each person has a phenotype; however, from looking at the information that has been read into R, it is clear that the phenotype files and the genotype files use different ID formats.  
+There is a file that contains the IDs for both the genotype files and the phenotype files.  It will be used to merge the two.
+
+```{r}
+#The file that contains the IDs in NG (genotype) format and phenotype format.
+AllID4Geno<-fread("z://AA_nonGAIN_SCZ/phs000167.v1.pht000719.v1.p1.nonGAIN_Schizophrenia_Sample.MULTI.txt",header =T)
+naming2<-as.character(AllID4Geno[1,])
+colnames(AllID4Geno)<-naming2
+AllID4Geno<-AllID4Geno[-1,]
+```
+
+```{r}
+GRUCaseAncestry<-GRUphenocases$phv00071341.v1.p1.c1
+table(GRUCaseAncestry)
+naming3<-as.character(GRUphenocases[1,])
+colnames(GRUphenocases)<-naming3
+GRUphenocases<-GRUphenocases[-1,]
+
+table(SARCphenocases$phv00071341.v1.p1.c2)
+naming4<-as.character(SARCphenocases[1,])
+colnames(SARCphenocases)<-naming4
+SARCphenocases<-SARCphenocases[-1,]
+
+naming5<-as.character(GRUphenocontrols[1,])
+colnames(GRUphenocontrols)<-naming5
+GRUphenocontrols<-GRUphenocontrols[-1,]
+```
+#There are only 105 total self-identified African American cases in this cohort.
+#21 AA individuals are controls
+
+```{r}
+#The first 20 individuals in SARCphenocase file are AA
+#The first x amount of rows in each phenotype file is 
+AA_SARCphenocases<-SARCphenocases[1:20,]
+AA_GRUphenocases<-GRUphenocases[1:85,]
+AA_GRUphenocontrols<-GRUphenocontrols[1:21,]
+```
+
+5. Identify AA cases and controls by their genotype ID. consent group.
+```{r}
+#Since the plink files become desynchronized when I create a .fam file from R of different individuals.  I am making a list of AA individuals to "keep" in plink.
+GRUphenocase<-left_join(AA_GRUphenocases,AllID4Geno,by="dbGaP SubjID")
+IDAA_GRUcases<-dplyr::select(GRUphenocase,"SAMPID_NG-format")
+
+GRUphenocontrol<-left_join(AA_GRUphenocontrols,AllID4Geno,by="dbGaP SubjID")
+IDAA_GRUcontrols<-dplyr::select(GRUphenocontrol,"SAMPID_NG-format")
+
+SARCcases<-left_join(AA_SARCphenocases,AllID4Geno,by="dbGaP SubjID")
+SARCfamIDs<-left_join(SARCcases,SARCfam,by=c("SAMPID_NG-format"="V1"))
+IDAA_SARCcases<-select(SARCfamIDs, "SAMPID_NG-format", "V2")
+
+GRUIDsAll<-rbind(IDAA_GRUcases,IDAA_GRUcontrols)
+GRUfamIDs<-left_join(GRUIDsAll,GRUfam,by=c("SAMPID_NG-format"="V1"))
+row.has.na <- apply(GRUfamIDs, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+GRUfamIDS1<-GRUfamIDs[!row.has.na,]
+GRUIDs2<-dplyr::select(GRUfamIDS1, "SAMPID_NG-format", "V2")
+                       
+fwrite(GRUIDs2,"Z://AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c1.GRU/AA_GRUlist.txt",col.names = F,row.names = F, sep = " ",quote = F)
+
+fwrite(IDAA_SARCcases,"Z://AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c2.SARC/AA_SARClist.txt",col.names = F,row.names = F, sep=" ", quote= F)
+
+```
+
+```{bash}
+plink --bfile nonGAIN_Schizophrenia_consent_GRU --keep AA_GRUlist.txt  --make-bed --out AAbfilesnopheno
+
+plink --bfile nonGAIN_Schizophrenia_consent_SARC --keep AA_SARClist.txt  --make-bed --out AAbfilesnophenoSARC
+```
+
+```{bash}
+#for some reason, all of the phenotypes are now identified as -9... This does not make too much sense so I am going to try to change this
+awk -v s=1 '{print $1, $2 , $3, $4, $5, $6+11 }' AAbfilesnophenoSARC.fam > AAbfilesWphenoSARC.fam
+#Since all of these individuals are in the SARC consent group, they are all cases.  I can just make their phenotype 2
+
+plink --bed AAbfilesnophenoSARC.bed --bim AAbfilesnophenoSARC.bim --fam AAbfilesWphenoSARC.fam --make-bed --out AAbfilesWphenoSARC1
+```
+
+6. Generate new genotype files for 
+```{r}
+
+GRUfamcases<-left_join(IDAA_GRUcases,GRUfamIDS1, by="SAMPID_NG-format")
+row.has.na <- apply(GRUfamcases, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+GRUcasesfam<-GRUfamcases[!row.has.na,]
+GRUcasesfam$V6=2 ##This completely identifies which values are cases
+
+GRUfamcontrols<-left_join(IDAA_GRUcontrols,GRUfamIDS1, by="SAMPID_NG-format")
+row.has.na <- apply(GRUfamcontrols, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+GRUcontrolsfam<-GRUfamcontrols[!row.has.na,]
+GRUcontrolsfam$V6=1
+
+GRUfamfinal<-rbind(GRUcontrolsfam,GRUcasesfam)
+fwrite(GRUfamfinal,"Z://AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c1.GRU/AAGRUbfilesWpheno.fam",row.names = F, col.names = F, sep = " ",quote = F)
+```
+
+
+```{bash}
+plink --bed AAbfilesnopheno.bed --bim AAbfilesnopheno.bim --fam AAGRUbfilesWpheno.fam --make-bed --out AAbfilesWphenoGRU
+
+plink --bfile /home/peter/AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c2.SARC/AAbfilesWphenoSARC1 --bmerge /home/peter/AA_nonGAIN_SCZ/phg000037.v1.p1.nonGAIN_Schizophrenia.matrixfmt.c1.GRU/AAbfilesWphenoGRU  --make-bed --out/home/peter/AA_nonGAIN_SCZ/QCSteps/AAnonGAIN_SCZ_start
+```
