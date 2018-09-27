@@ -80,7 +80,7 @@ Calculating allele frequencies... done.
 Note: No phenotypes present.
 --make-bed to s11000G.bed + s11000G.bim + s11000G.fam ... done.
 
-#The next command that creates the chr#.bfile set is giving an error:
+##The next command that creates the chr#.bfile set is giving an error:
 PLINK v1.90b4.4 64-bit (21 May 2017)           www.cog-genomics.org/plink/1.9/
 (C) 2005-2017 Shaun Purcell, Christopher Chang   GNU General Public License v3
 Logging to /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFilteredchr15.log.
