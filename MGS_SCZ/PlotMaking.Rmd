@@ -1,0 +1,224 @@
+---
+title: "PlotMaker"
+author: "Peter Fiorica"
+date: "9/27/2018"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+database_tissues <- c("TW_Adipose_Subcutaneous_0.5.db", "TW_Adipose_Visceral_Omentum_0.5.db", "TW_Adrenal_Gland_0.5.db", "TW_Artery_Aorta_0.5.db", "TW_Artery_Coronary_0.5.db", "TW_Artery_Tibial_0.5.db", "TW_Brain_Anterior_cingulate_cortex_BA24_0.5.db", "TW_Brain_Caudate_basal_ganglia_0.5.db", "TW_Brain_Cerebellar_Hemisphere_0.5.db", "TW_Brain_Cerebellum_0.5.db", "TW_Brain_Cortex_0.5.db", "TW_Brain_Frontal_Cortex_BA9_0.5.db", "TW_Brain_Hippocampus_0.5.db", "TW_Brain_Hypothalamus_0.5.db", "TW_Brain_Nucleus_accumbens_basal_ganglia_0.5.db", "TW_Brain_Putamen_basal_ganglia_0.5.db", "TW_Breast_Mammary_Tissue_0.5.db", "TW_Cells_EBV-transformed_lymphocytes_0.5.db", "TW_Cells_Transformed_fibroblasts_0.5.db", "TW_Colon_Sigmoid_0.5.db", "TW_Colon_Transverse_0.5.db", "TW_Esophagus_Gastroesophageal_Junction_0.5.db", "TW_Esophagus_Mucosa_0.5.db", "TW_Esophagus_Muscularis_0.5.db", "TW_Heart_Atrial_Appendage_0.5.db", "TW_Heart_Left_Ventricle_0.5.db", "TW_Liver_0.5.db", "TW_Lung_0.5.db", "TW_Muscle_Skeletal_0.5.db", "TW_Nerve_Tibial_0.5.db", "TW_Ovary_0.5.db", "TW_Pancreas_0.5.db", "TW_Pituitary_0.5.db", "TW_Prostate_0.5.db", "TW_Skin_Not_Sun_Exposed_Suprapubic_0.5.db", "TW_Skin_Sun_Exposed_Lower_leg_0.5.db", "TW_Small_Intestine_Terminal_Ileum_0.5.db", "TW_Spleen_0.5.db", "TW_Stomach_0.5.db", "TW_Testis_0.5.db", "TW_Thyroid_0.5.db", "TW_Uterus_0.5.db", "TW_Vagina_0.5.db", "TW_Whole_Blood_0.5.db")
+threshold <- 0.05
+```
+
+Making a Box Plot and a Violin Plot
+```{r}
+##CBFA2t2
+lungXpress<-fread("Z://AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000GTW_Lung_0.5.db_predicted_expression.txt",header = T)
+#The gene we are interested in is ENSG00000078699.17
+
+lung_gene<-data.table(FID=lungXpress$FID,IID=lungXpress$IID,Xpres=lungXpress$ENSG00000078699.17)
+With_pheno<-left_join(lung_gene , pheno , b = c("IID" = "V2"))
+onlywithpheno<-dplyr::select(With_pheno,FID,IID,Xpres,V6)
+
+ggplot(data = onlywithpheno, aes(x=as.character(V6),y=Xpres)) +
+  geom_boxplot(fill='navy', color="purple") + ggtitle("CBFA2T2") +xlab("Case/Control Status") + ylab("Predicted Gene Expression") + theme_bw(20)
+
+ggplot(data = onlywithpheno, aes(x=as.character(V6),y=Xpres),colour) +
+  geom_violin() 
+```
+
+```{r}
+#SMPD3
+lymphocyteXpress<-fread("Z://AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000GTW_Cells_EBV-transformed_lymphocytes_0.5.db_predicted_expression.txt",header = T)
+#The gene we are interested in is ENSG00000103056.7
+
+lymphocyte_gene<-data.table(FID=lymphocyteXpress$FID,IID=lymphocyteXpress$IID,Xpres=lymphocyteXpress$ENSG00000103056.7)
+With_phenolymph<-left_join(lymphocyte_gene , pheno , b = c("IID" = "V2"))
+onlywithphenolymph<-dplyr::select(With_phenolymph,FID,IID,Xpres,V6)
+
+ggplot(data = onlywithphenolymph, aes(x=as.character(V6),y=Xpres)) +
+  geom_boxplot(fill='navy', color="purple") + ggtitle("SMPD3") +xlab("Case/Control Status") + ylab("Predicted Gene Expression") + theme_bw(20)
+
+ggplot(data = onlywithphenolymph, aes(x=as.character(V6),y=Xpres),colour) +
+  geom_violin(fill='navy', color="purple") + stat_summary(fun.data=mean_sdl, geom="pointrange", color="white")+ ggtitle("SMPD3") +xlab("Case/Control Status") + ylab("Predicted Gene Expression")
+```
+
+```{r}
+#ZBTB1
+stomachXpress<-fread("Z://AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000GTW_Stomach_0.5.db_predicted_expression.txt",header = T)
+#The gene we are interested in is ENSG00000126804.9
+
+stomach_gene<-data.table(FID=stomachXpress$FID,IID=stomachXpress$IID,Xpres=stomachXpress$ENSG00000126804.9)
+With_phenostomach<-left_join(stomach_gene , pheno , b = c("IID" = "V2"))
+onlywithphenostomach<-dplyr::select(With_phenostomach,FID,IID,Xpres,V6)
+
+ggplot(data = onlywithphenostomach, aes(x=as.character(V6),y=Xpres)) +
+  geom_boxplot(fill='navy', color="purple") + ggtitle("ZBTB1(GTEx v6)") +xlab("Case/Control Status") + ylab("Predicted Gene Expression") + theme_bw(20)
+
+ggplot(data = onlywithphenostomach, aes(x=as.character(V6),y=Xpres),colour) +
+  geom_violin(fill='navy', color="purple") + stat_summary(fun.data=mean_sdl, geom="pointrange", color="white")
+```
+
+```{r}
+#DHH
+UterusXpress<-fread("Z://AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000GTW_Uterus_0.5.db_predicted_expression.txt",header = T)
+#The gene we are interested in is ENSG00000139549.2
+
+Uterus_gene<-data.table(FID=UterusXpress$FID, IID=UterusXpress$IID, Xpres=UterusXpress$ENSG00000139549.2)
+
+With_phenoUterus<-left_join(Uterus_gene , pheno , b = c("IID" = "V2"))
+onlywithphenoUterus<-dplyr::select(With_phenoUterus,FID,IID,Xpres,V6)
+
+ggplot(data = onlywithphenoUterus, aes(x=as.character(V6),y=Xpres)) +
+  geom_boxplot(fill='navy', color="purple") + ggtitle("DHH") +xlab("Case/Control Status") + ylab("Predicted Gene Expression") + theme_bw(20)
+  
+ggplot(data = onlywithphenoUterus, aes(x=as.character(V6),y=Xpres),colour) +
+  geom_violin(fill='navy', color="purple") + stat_summary(fun.data=mean_sdl, geom="pointrange", color="white")
+```
+Continued Boxplots and Violin Plots for GTEXV7:
+RP11-645c24.5
+```{r}
+pancXpress<-fread("Z://AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Pancreas_imputed_europeans_tw_0.5_signif.db_predicted_expression.txt",header = T)
+#The gene we are interested in is ENSG00000126804.9
+
+panc_gene<-data.table(FID=stomXpress$FID,IID=stomXpress$IID,Xpres=stomXpress$ENSG00000126804.9)
+With_phenopanc<-left_join(panc_gene , pheno , b = c("IID" = "V2"))
+onlywithphenopanc<-dplyr::select(With_phenopanc,FID,IID,Xpres,V6)
+
+ggplot(data = onlywithphenopanc, aes(x=as.character(V6),y=Xpres)) + geom_boxplot(fill='navy', color="purple") + ggtitle("RP11-645C24.5") +xlab("Case/Control Status") + ylab("Predicted Gene Expression") + theme_bw(20)
+                                                                                        
+
+ggplot(data = onlywithphenopanc, aes(x=as.character(V6),y=Xpres),colour) +
+  geom_violin(fill='navy', color="purple") + stat_summary(fun.data=mean_sdl, geom="pointrange", color="white")+ ggtitle("ZBTB1") +xlab("Case/Control Status") + ylab("Predicted Gene Expression")
+```
+
+PRMT7
+```{r}
+pitXpress<-fread("Z://AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Pituitary_imputed_europeans_tw_0.5_signif.db_predicted_expression.txt",header = T)
+#The gene we are interested in is ENSG00000132600.12
+
+pit_gene<-data.table(FID=pitXpress$FID,IID=pitXpress$IID,Xpres=pitXpress$ENSG00000132600.12)
+With_phenopit<-left_join(pit_gene , pheno , b = c("IID" = "V2"))
+onlywithphenopit<-dplyr::select(With_phenopit,FID,IID,Xpres,V6)
+
+ggplot(data = onlywithphenopit, aes(x=as.character(V6),y=Xpres)) +
+  geom_boxplot(fill='navy', color="purple") + ggtitle("PLEKHG3") +xlab("Case/Control Status") + ylab("Predicted Gene Expression") + theme_bw(20)
+
+ggplot(data = onlywithphenopit, aes(x=as.character(V6),y=Xpres),colour) +
+  geom_violin(fill='navy', color="purple") + stat_summary(fun.data=mean_sdl, geom="pointrange", color="white")+ ggtitle("PLEKHG3") +xlab("Case/Control Status") + ylab("Predicted Gene Expression")
+```
+ZBTB1
+```{r}
+heartXpress<-fread("Z://AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Heart_Atrial_Appendage_imputed_europeans_tw_0.5_signif.db_predicted_expression.txt",header = T)
+#The gene we are interested in is ENSG00000132600.12
+
+heart_gene<-data.table(FID=stomXpress$FID,IID=stomXpress$IID,Xpres=stomXpress$ENSG00000132600.12)
+With_phenoheart<-left_join(heart_gene , pheno , b = c("IID" = "V2"))
+onlywithphenoheart<-dplyr::select(With_phenoheart,FID,IID,Xpres,V6)
+
+ggplot(data = onlywithphenoheart, aes(x=as.character(V6),y=Xpres)) + geom_boxplot(fill='navy', color="purple") + ggtitle("PRMT7") +xlab("Case/Control Status") + ylab("Predicted Gene Expression")
+
+ggplot(data = onlywithphenoheart, aes(x=as.character(V6),y=Xpres),colour) +
+  geom_violin(fill='navy', color="purple") + stat_summary(fun.data=mean_sdl, geom="pointrange", color="white")+ ggtitle("PRMT7") +xlab("Case/Control Status") + ylab("Predicted Gene Expression")
+```
+
+The next plot is a predixcan manhattan plot:
+```{r}
+##THIS WAS USED
+library(qqman)
+
+colon<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Colon_Sigmoid_imputed_europeans_tw_0.5_signif.db_association.txt",header = T,stringsAsFactors = FALSE)
+genenames<-fread("/home/peter/PrediXcan/BP_Chrome.txt",header =T,stringsAsFactors = T)
+
+colonnames<-left_join(colon,genenames,by=c("gene"))
+
+
+row.has.na <- apply(colontemp, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+colontemp1<-colontemp[!row.has.na,]
+colonumbers<-c(colontemp1$CHR,colontemp1$BP,colontemp1$p,colontemp1$gene,colontemp1$gene_name)
+fwrite(colonnumbers,file="/home/peter/AA_nonGAIN_SCZ/PrediXcan/colonnames.txt",sep="\t",col.names = T, row.names = F, quote = F)
+
+colonnumbers<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/colonnames.txt", header =T, stringsAsFactors = T)
+row.has.na <- apply(colonnumbers, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+colonnumbers<-colonnumbers[!row.has.na,]
+
+manhattan(colonnumbers,chr = "CHR" ,bp="BP",p="p",snp = "gene", col = c("purple","navy","deepskyblue"), genomewideline = -log10(.05/5155) , main="Sigmoid Colon GTEx v7", ylim=c(0,8),annotateTop = TRUE) 
+
+```
+
+```{r}
+genenames<-fread("/home/peter/PrediXcan/BP_Chrome.txt",header =T)
+
+for (tis in GTEX7){
+  a<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_" %&% tis %&% "_association.txt",header = T,stringsAsFactors = FALSE)
+  tisswnames<-left_join(a,genenames,by=c("gene"))
+  b <- dplyr::select(tisswnames,"CHR","BP","p","gene","gene_name")
+  if(exists("alltiss")){
+    alltiss<-bind_rows(alltiss,b)
+  }else{
+    alltiss<-b
+  }
+}
+
+for (tissue in database_tissues){
+  a<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000G" %&% tissue %&% "_association.txt",header = T,stringsAsFactors = FALSE)
+  tisswnames<-left_join(a,genenames,by=c("gene"))
+  b <- dplyr::select(tisswnames,"CHR","BP","p","gene","gene_name")
+  if(exists("alltiss")){
+    alltiss<-bind_rows(alltiss,b)
+  }else{
+    alltiss<-b
+  }
+}
+row.has.na <- apply(alltiss, 1, function(x){any(is.na(x))})
+sum(row.has.na)
+newtiss<-alltiss[!row.has.na,]
+
+fwrite(newtiss,file="/home/peter/AA_nonGAIN_SCZ/PrediXcan/GTExTissWNames.txt",sep="\t",col.names = T, row.names = F, quote = F)
+  
+tissue<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/GTExTissWNames.txt",header = TRUE, stringsAsFactors = TRUE)
+
+manhattan(tissue,chr = "CHR" ,bp="BP",p="p",snp = "gene", col = c("purple","navy","deepskyblue"), genomewideline = -log10(.05/5179) , main="PrediXcan Gene Associations", ylim=c(0,8),annotateTop = TRUE, cex.lab = 2.0) 
+
+```
+PCA Plots
+```{r}
+#EIGENSTRAT
+hapmappopinfo<-read.table("/home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/HAPMAP3_hg18/MyDirectory_pop_HM3_hg18_forPCA.txt")%>%select(V1,V3)
+#Reading in the original file above gave me some issues
+#Becayse I copied the original folder from wheelerlab1 to my directory, 
+#so that I could run R command on my laptop remotely
+#As a result, R would not let me open the file until I copied the file in my directory
+colnames(hapmappopinfo) <- c("pop","IID")
+fam<-read.table("/home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/QCStep6E/QCStep6E.fam")%>%select(V1,V2)#This is the last .fam file that was made in the QC process
+colnames(fam) <- c("FID","IID")
+popinfo <- left_join(fam,hapmappopinfo,by="IID")
+popinfo <-mutate(popinfo, pop=ifelse(is.na(pop),'GWAS',as.character(pop)))
+table(popinfo$pop)
+
+pcsgenonox0.01<-read.table("/home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/QCStep6E/QCStep6E_noX_geno0.01.evec",skip=1)
+pcdfgenonox0.01 <- data.frame(popinfo, pcsgenonox0.01[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwasgenonox0.01 <- filter(pcdfgenonox0.01,pop=='GWAS')
+hm3genonox0.01 <- filter(pcdfgenonox0.01, grepl('NA',IID))
+evalgenonox0.01<-scan("/home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/QCStep6E/QCStep6E_noX_geno0.01.eval")[1:10]
+round(eval/sum(evalgenonox0.01))#Calculate the percent explained by each PC
+
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ scale_colour_manual(values = c("gray56", "deepskyblue", "darkviolet","navy")) + theme_bw(20)
+                                                                                          
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+```
+
+
+Locus Zoom Plots
+```{bash}
+grep -w rs372857644 nonGAINSCZ.assoc.dosage
+grep -w rs1267917650 nonGAINSCZ.assoc.dosage
+awk 'NR>=11075855&&NR<=11332018' nonGAINSCZ.assoc.dosage > data4locuszoom
+```
