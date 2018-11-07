@@ -1,0 +1,188 @@
+---
+title: "PreQCForBipolarData"
+author: "Peter Fiorica"
+date: "10/11/2018"
+output: html_document
+---
+These steps are broken down by consent group: General Research Use (GRU), Bipolar and Related Disorders (BARD), and Bipolar Disorder Only (BDO)
+
+1A). Copy Appropriate files from wheelerlab3 directory to my directory.
+62470_GAIN_DS-BD_n653/
+57575_GAIN_GRU-BD_n1767/ 
+62469_GAIN_REL-BD_n841/
+```{bash}
+#In 62470_GAIN_DS-BD_n653/
+cp phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c3.BDO.filtered.matrixfmt.genotype.tar /home/peter/
+cp phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c3.BDO.filtered.matrixfmt.genotype.tar /home/peter/
+```
+
+2A) Extract contents using tar:
+```{bash}
+#Be sure to view the contents of the tar folder before extracting.  You can do this using `tar -tf filename.tar.gz`
+tar -xvf phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c3.BDO.filtered.matrixfmt.genotype.tar
+#Before extracting the contents of the next file, I am going ot take a quick look these.
+less -S phg000015.filtered.BDO.plink.fam.gz
+zcat phg000015.filtered.BDO.plink.fam.gz | wc -l
+#There are 378 individuals here, and they have 2 or 0 in their phenotype column, so they appear to all be cases.
+zcat phg000015.filtered.BDO.plink.bim.gz | wc -l
+#We are working with 729454 SNPs
+# I also checked the README, and there are a little less than 40 individuals that need to have there phenotypes changes.  See /home/peter/bipolar_disorder/README.IMPORTANT
+tar -xvf phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c3.BDO.filtered.matrixfmt.genotype.tar
+#This has 264 individuals here
+#All 2s and 0s in phenotype as well.
+#We are working with 845814 data.
+```
+
+1B). Copy Appropriate files from wheelerlab3 directory to my directory.
+```{bash}
+#In 57575_GAIN_GRU-BD_n1767/
+#These appear to be the General Research Use Data (GRU)
+cp phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype.tar /home/peter/bipolar_disorder/57575_GAIN_GRU-BD_n1767/
+  
+cp phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype.tar /home/peter/bipolar_disorder/57575_GAIN_GRU-BD_n1767/
+```
+2B). Extract the contents of the file
+```{bash}
+tar -xvf phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype.tar
+#1046 individuals here
+#Phenotype is only 1s
+#729454 SNPs
+tar -xvf phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype.tar
+#Phenotypes = 1s
+#679 individuals
+#845814 SNPs
+```
+1C). Copy the files to my directory
+```{bash}
+#62469_GAIN_REL-BD_n841/
+cp phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype.tar /ho
+me/peter/bipolar_disorder/62469_GAIN_REL-BD_n841/
+
+cp phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype.tar /ho
+me/peter/bipolar_disorder/62469_GAIN_REL-BD_n841/
+```
+2C). Extract the contents of the files.
+```{bash}
+tar -xvf phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype.tar
+#675 Individuals
+#729454 SNPs
+#phenotype=2 and 0s
+tar -xvf phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype.tar 
+#153 individuals
+#845814 SNPs
+#Phenotype=2s and 0s
+```
+
+#Once I took a look at the Release Notes for the total Datasets, I realized that there are only 1101 total African American Individuals in the study.
+#686 Controls (8 duplicates), 415 cases. Not a ton of data.
+
+3) Reading in Information to exclude any non AA individuals
+```{r}
+AAinfoGRUcontrols<-fread("/home/peter/bipolar_disorder/57575_GAIN_GRU-BD_n1767/phs000017.v3.pht000383.v1.p1.c1.AA_GAIN_phenotype_controls_main_subset.GRU.txt", header =T, fill=T)
+colnames(AAinfoGRUcontrols)<-as.character(c(AAinfoGRUcontrols[10,]))
+AAinfoGRUcontrols <- AAinfoGRUcontrols[-c(1:10), ]#Removes rows 1 through 10 to clean up the data table.
+table(AAinfoGRUcontrols$self_id_ancestry)
+#This file contains only AA individuals.  These are all of the AA controls.
+```
+```{bash}
+zcat phs000017.v3.pht000696.v1.p1.c2.DIGS2and3_PedData_Diagnosis.BARD.txt.gz | wc -l 
+#381
+zcat phs000017.v3.pht000695.v1.p1.c2.AA_GAIN4_Diagnosis.BARD.txt.gz | wc -l 
+```
+
+4) Generating a .fam file for AA controls
+```{r}
+GRU15fam<-fread(sprintf("zcat %s", "/home/peter/bipolar_disorder/57575_GAIN_GRU-BD_n1767/phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype/phg000015.filtered.GRU.plink.fam.gz", header =F))
+GRU16fam<-fread(sprintf("zcat %s", "/home/peter/bipolar_disorder/57575_GAIN_GRU-BD_n1767/phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype/phg000016.filtered.GRU.plink.fam.gz", header =F))
+
+GRUtotalfam<-bind_rows(GRU15fam,GRU16fam)
+GRUtotalfam[duplicated(GRUtotalfam),] #no duplicates
+GRUcontrolsfull<-left_join(AAinfoGRUcontrols,GRUtotalfam, by=c("individual_id"="V2"))
+GRUcontrolsfam<-dplyr::select(GRUcontrolsfull,"V1","individual_id","V3","V4","V5","V6")
+row.has.na<-apply(GRUcontrolsfam,1,function(x){any(is.na(x))})
+sum(row.has.na)
+GRUfamcontrolfinal<- GRUcontrolsfam[!row.has.na,]#This file contains the phenotype individuals for AA controls with V6(phenotype) being 1 #We now only have 671 AA controls.
+
+aaGRUcontrollist<-dplyr::select(GRUfamcontrolfinal, V1, individual_id)
+
+fwrite(aaGRUcontrollist, "/home/peter/bipolar_disorder/preQCSteps/AAcontrolslist.txt", col.names = F, row.names = F, quote = F, sep = "\t")
+fwrite(GRUfamcontrolfinal, "/home/peter/bipolar_disorder/preQCSteps/AAcontrols.fam", col.names = F, row.names = F, quote = F, sep = "\t")
+```
+
+5) Generating a .fam file for the REL(BARD) and DS(BDO) concent groups:
+```{r}
+REL15<-fread(sprintf("zcat %s", "/home/peter/bipolar_disorder/62469_GAIN_REL-BD_n841/phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype/phg000015.filtered.BARD.plink.fam.gz", header =F))
+REL16<-fread(sprintf("zcat %s", "/home/peter/bipolar_disorder/62469_GAIN_REL-BD_n841/phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype/phg000016.filtered.BARD.plink.fam.gz", header =F))
+BARDtotal<-bind_rows(REL15,REL16)
+BARDtotal[duplicated(BARDtotal),]#no duplicates
+
+BDO15<-fread(sprintf("zcat %s", "/home/peter/bipolar_disorder/62470_GAIN_DS-BD_n653/phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c3.BDO.filtered.matrixfmt.genotype/phg000015.filtered.BDO.plink.fam.gz", header =F))
+BDO16<-fread(sprintf("zcat %s", "/home/peter/bipolar_disorder/62470_GAIN_DS-BD_n653/phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c3.BDO.filtered.matrixfmt.genotype/phg000016.filtered.BDO.plink.fam.gz", header =F))
+BDOtotal<-bind_rows(BDO15,BDO16)
+BDOtotal[duplicated(BDOtotal,)]#no duplicates
+
+
+#Getting the phenotype files ready.
+BDOdiagnosis<-fread(sprintf("zcat %s","/home/wheelerlab3/Data/dbGaP_Proj_15297_SCZ_BD/62470_GAIN_DS-BD_n653/GAIN/Bipolar/phs000017v3/p1/phs000017.v3.pht000695.v1.p1.c3.AA_GAIN4_Diagnosis.BDO.txt.gz", header =T))
+a<-BDOdiagnosis[1,]
+colnames(BDOdiagnosis)<-as.character(a)
+BDOdiagnosis<-BDOdiagnosis[-1,-6]
+table(BDOdiagnosis$Bipolar_Subject)
+#There are 224 cases here
+BARDdiagnosis<-fread(sprintf("zcat %s","/home/wheelerlab3/Data/dbGaP_Proj_15297_SCZ_BD/62469_GAIN_REL-BD_n841/GAIN/Bipolar/phs000017v3/p1/phs000017.v3.pht000695.v1.p1.c2.AA_GAIN4_Diagnosis.BARD.txt.gz",header = T))
+b<-BARDdiagnosis[1,]
+colnames(BARDdiagnosis)<-as.character(b)
+BARDdiagnosis<-BARDdiagnosis[-1,-6]
+table(BARDdiagnosis$Bipolar_Subject)
+#There are 135 cases in here
+
+#So 135 + 224 =359, which does not =415 number from the manifest.
+
+#But the 150 + 265 =415 when you include the "other" individuals as cases.
+case=c("Case")
+BDOcases<-filter(BDOdiagnosis, BDOdiagnosis$Bipolar_Subject%in%case)
+BDOCasePrefam<-left_join(BDOcases,BDOtotal,by=c("GAIN_ID"="V2"))
+BDocasefam<-dplyr::select(BDOCasePrefam,"V1","GAIN_ID","V3","V4","V5","V6")
+row.has.na<-apply(BDocasefam,1,function(x){any(is.na(x))})
+sum(row.has.na)#Removed 10 individuals here
+BDOcasefam<-BDocasefam[!row.has.na,]#This Fam file is good to go for consent group BARD
+BDOcasefam<-mutate(BDOcasefam,V1,GAIN_ID,V3,V4,V5,V6=2)
+
+BARDcases<-filter(BARDdiagnosis,BARDdiagnosis$Bipolar_Subject%in%case)
+BARDCasePrefam<-left_join(BARDcases,BARDtotal,by=c("GAIN_ID"="V2"))
+BARDcasefam<-dplyr::select(BARDCasePrefam,"V1","GAIN_ID","V3","V4","V5","V6")
+row.has.na<-apply(BARDcasefam,1,function(x){any(is.na(x))})
+sum(row.has.na)#removed 1 individual here
+BARDcasefam<-BARDcasefam[!row.has.na,]#This Fam file is good to go for consent group BARD
+BARDcasefam<-mutate(BARDcasefam,V1,GAIN_ID,V3,V4,V5,V6=2)
+
+casestotalfam<-bind_rows(BARDcasefam,BDOcasefam)#Prepared .fam with all of the AA cases
+fwrite(casestotalfam, "/home/peter/bipolar_disorder/preQCSteps/caseswithpheno.fam", col.names = F, row.names = F, quote = F, sep ="\t")
+caselist<-dplyr::select(casestotalfam,V1,GAIN_ID)
+fwrite(caselist,"/home/peter/bipolar_disorder/caselist.txt", col.names = F, row.names = F , quote = F, sep = "\t")
+```
+
+6)Prepping dbGaP genotype files so non AA individuals can be excluded:
+```{bash}
+plink --bfile /home/peter/bipolar_disorder/62469_GAIN_REL-BD_n841/phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype/phg000015.filtered.BARD.plink --bmerge /home/peter/bipolar_disorder/62469_GAIN_REL-BD_n841/phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype/phg000016.filtered.BARD.plink --make-bed --out BARDcases
+#BARD Case_genotypes
+
+plink --bfile /home/peter/bipolar_disorder/62470_GAIN_DS-BD_n653/phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c3.BDO.filtered.matrixfmt.genotype/phg000015.filtered.BDO.plink --bmerge /home/peter/bipolar_disorder/62470_GAIN_DS-BD_n653/phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c3.BDO.filtered.matrixfmt.genotype/phg000016.filtered.BDO.plink --make-bed --out BDOcases
+#BDO cases genotypes
+
+plink --bfile BDOcases --bmerge /home/peter/bipolar_disorder/62469_GAIN_REL-BD_n841/phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c2.BARD.filtered.matrixfmt.genotype/BARDcases --make-bed --out casesbadpheno
+#total cases without a good phenotype
+
+plink --bfile casesbadpheno  --keep  /home/peter/bipolar_disorder/preQCSteps/caselist.txt --make-bed --out /home/peter/bipolar_disorder/preQCSteps/AAcases
+
+plink --bed /home/peter/bipolar_disorder/preQCSteps/AAcases.bed --bim /home/peter/bipolar_disorder/preQCSteps/AAcases.bim --fam /home/peter/bipolar_disorder/preQCSteps/caseswithpheno.fam --make-bed --out AAcases4merge #The complete genotype fileset for the cases.  This now just needs to be completed with the cases and merged before QC.
+
+plink --bfile /home/peter/bipolar_disorder/57575_GAIN_GRU-BD_n1767/phg000015.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype/phg000015.filtered.GRU.plink --bmerge /home/peter/bipolar_disorder/57575_GAIN_GRU-BD_n1767/phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype/phg000016.filtered.GRU.plink --make-bed --out GRUcontrols
+#Control genotype file
+
+plink --bfile /home/peter/bipolar_disorder/57575_GAIN_GRU-BD_n1767/phg000016.Bipolar.genotype-calls.Affymetrix6.v1.p1.c1.GRU.filtered.matrixfmt.genotype/GRUcontrols --keep /home/peter/bipolar_disorder/preQCSteps/AAcontrolslist.txt  -make-bed --out /home/peter/bipolar_disorder/preQCSteps/AAcontrolsbadpheno
+
+plink --bed /home/peter/bipolar_disorder/preQCSteps/AAcontrolsbadpheno.bed --bim /home/peter/bipolar_disorder/preQCSteps/AAcontrolsbadpheno.bim --fam /home/peter/bipolar_disorder/preQCSteps/AAcontrols.fam --make-bed --out AAcontrols4merge
+
+plink --bfile AAcontrols4merge --bmerge AAcases4merge --make-bed --out aa4QCstart
+```
