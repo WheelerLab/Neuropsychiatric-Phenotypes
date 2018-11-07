@@ -1,0 +1,218 @@
+---
+title: "GAIN_BP_GWAS_QCSteps"
+author: "Peter Fiorica"
+date: "11/5/2018"
+output: html_document
+---
+
+Starting Step0:Sex Check
+```{bash}
+plink --bfile /home/peter/bipolar_disorder/preQCSteps/QCStartFiles/aa4QCstart  --set-hh-missing --make-bed --out QCStep0NoHH
+
+plink --bfile QCStep0NoHH --check-sex --missing --out QCStep0SexCheck
+
+plink --bfile QCStep0NoHH --chr 1-22 --make-bed --out QCStep0
+```
+
+QC Step1: Checking unfiltered genotyping rate
+```{bash}
+plink --bfile qcstep0/QCStep0 --missing --out qcstep1/QCStep1
+```
+
+```{r}
+library(dplyr)
+library(data.table)
+library(ggplot2)
+```
+```{r}
+"%&%"=function(a,b) paste(a,b,sep="")
+lmiss<-fread("/home/peter/bipolar_disorder/QC/qcstep1/QCStep1.lmiss",header =T)
+hist(lmiss$F_MISS)
+dim(lmiss)[1] #This tells us the number of SNPs we are working with before filtering by genotyping rate
+table(lmiss$F_MISS<0.01)
+#We'd be removing 111k SNPs if we filtered at 99%
+table(lmiss$F_MISS<0.02)
+sum(lmiss$F_MISS<0.01)/(dim(lmiss)[1])
+#We'd be removing 60k SNPs if we filtered at 98%
+sum(lmiss$F_MISS<0.02)/(dim(lmiss)[1])#The percent of SNPs have a genotyping call rate of 98%
+```
+
+#QCStep 2:Filtering SNPs by Genotyping Rate
+```{bash}
+plink --bfile ../qcstep0/QCStep0 --geno 0.01 --make-bed --out QCStep2
+```
+
+#QCStep 3 :Checking filtered genotyping rate
+```{bash}
+plink  --bfile ../qcstep2/QCStep2 --missing --out QCStep3
+```
+
+```{r}
+newimiss<-fread("/home/peter/bipolar_disorder/QC/qcstep3/QCStep3.imiss")
+hist(newimiss$F_MISS)
+newlmiss<-fread("/home/peter/bipolar_disorder/QC/qcstep3/QCStep3.lmiss")
+hist(newlmiss$F_MISS)
+dim(newlmiss)[1]
+```
+
+#QCStep 4: HWE filtering
+```{bash}
+plink --bfile ../qcstep2/QCStep2 --hardy --out QCStep4
+```
+```{r}
+hwe<-fread("/home/peter/bipolar_disorder/QC/qcstep4/QCStep4.hwe" , header =T)
+summary(hwe$P)
+hist(hwe$P)
+table(hwe$P<1e-06)
+table(hwe$P<1e-06)/sum(table(hwe$P<1e-06))
+```
+
+#QCStep5: IBD pruning
+```{bash}
+plink --bfile ../qcstep2/QCStep2 --indep-pairwise 50 5 0.3 --out QCStep5a
+#pruning SNPs by IBD
+plink --bfile ../qcstep2/QCStep2 --extract QCStep5a.prune.in --genome --out QCStep5b
+```
+```{r}
+ibd<-fread("/home/peter/bipolar_disorder/QC/qcstep5/QCStep5b.genome",header =T )
+ggplot(data = ibd, aes(x=Z0,y=Z1))+geom_point(alpha=1/4)+theme_bw()
+##Now we can check for duplicates in the data
+dups<-data.frame()
+for( i in 1:dim(ibd)[1]){
+  if(as.character(ibd$IID1[i])==as.character(ibd$IID2[i])){
+    dups<-rbind(dups,ibd[i,])
+  }
+}
+dim(dups)
+hapmap <- filter(ibd,grepl('NA',IID1))
+toExclude <- c(as.character(dups$IID1),as.character(hapmap$IID1))
+a <- as.character(ibd$IID1) %in% toExclude
+others <- ibd[a==FALSE,]
+toremove<-filter(others,PI_HAT>=0.2)
+#There are no individuals to remove
+```
+#Removing Heterozygosity outliers
+```{bash}
+plink --bfile ../qcstep2/QCStep2 --extract QCStep5a.prune.in --het --out QCStep5c
+```
+```{r}
+HET<-fread("/home/peter/bipolar_disorder/QC/qcstep5/QCStep5c.het",header =T)
+h=HET$"N(NM)"-HET$"O(HOM)"/HET$"N(NM)"
+oldpar = par(mfrow=c(1,2))
+hist(h,50)
+hist(HET$F,50)
+summary(HET$F)
+abline(v=mean(HET$F)+6*sd(HET$F),col="red")
+abline(v=mean(HET$F)-6*sd(HET$F),col="red")
+sortHET <- HET[order(HET$F),]
+
+outliers <- data.table()
+for(i in 1:length(sortHET$F)){
+  if(sortHET[i,6] > (mean(sortHET$F)+3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+  if(sortHET[i,6] < (mean(sortHET$F)-3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+}
+hetoutliers <- select(outliers, FID, IID)
+dim(hetoutliers)
+#There are 17 individuals, and that is a lot to remove when I am only working with 1015 people...Yikes
+write.table(hetoutliers, file = "/home/peter/bipolar_disorder/QC/qcstep5/hetoutliers.txt", quote = F, col.names = T, row.names = F)
+```
+
+```{bash}
+plink --bfile ../qcstep2/QCStep2 --extract QCStep5a.prune.in --remove hetoutliers.txt --make-bed --out QCStep5d
+
+plink --bfile QCStep5d --het --out QCStep5e
+```
+
+```{r}
+#This is to check that there are not anymore heterozygosity outliers
+HET<-fread("/home/peter/bipolar_disorder/QC/qcstep5/QCStep5e.het",header =T)
+h=HET$"N(NM)"-HET$"O(HOM)"/HET$"N(NM)"
+oldpar = par(mfrow=c(1,2))
+hist(h,50)
+hist(HET$F,50)
+summary(HET$F)
+abline(v=mean(HET$F)+6*sd(HET$F),col="red")
+abline(v=mean(HET$F)-6*sd(HET$F),col="red")
+sortHET <- HET[order(HET$F),]
+outliers <- data.table()
+for(i in 1:length(sortHET$F)){
+  if(sortHET[i,6] > (mean(sortHET$F)+3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+  if(sortHET[i,6] < (mean(sortHET$F)-3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+}
+```
+
+```{r}
+#We now need to switch the SNP names from AFFY_ids to rsIDs before we can merge with hapmap
+TotalSNPs<-fread("/home/peter/AA_GAIN_SCZ/summarystatistics.txt",header=T)
+#The summary statistics from the dbGaP data containing information that contains an rsID and position for each SNP_A-#
+SelectSNPs<-dplyr::select(TotalSNPs,"MarkerAccession","ChrID", "ChrPosition","SubmittedSNPID")
+#Isolates the positions we need to merge with a .bim file
+bim<-fread("/home/peter/bipolar_disorder/QC/qcstep5/QCStep5d.bim", header = F)
+#Reading in the last .bim from QC
+mergedbim <- left_join(bim, SelectSNPs, by = c("V1" = "ChrID", "V4" = "ChrPosition"))
+mergedbim2 <- mutate(mergedbim,snp=ifelse(is.na(`MarkerAccession`),V2, `MarkerAccession`))
+newbim <- dplyr::select(mergedbim2,V1,snp,V3,V4,V5,V6)
+filetest2<-newbim[!duplicated.data.frame(newbim),]
+write.table(filetest2,"/home/peter/bipolar_disorder/QC/qcstep5/newbim.bim",quote=F, sep="\t",row.names=F,col.names=F)
+```
+
+```{bash}
+plink --fam QCStep5d.fam --bed QCStep5d.bed --bim newbim.bim --make-bed --out RSidbfiles4merge
+```
+
+QCStep6:Merging with HapMap for PCA
+```{bash}
+#6A
+plink --bfile ../qcstep5/RSidbfiles4merge --bmerge /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.bed /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.bim /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.fam --make-bed --out QCStep6A
+
+#6B
+plink  --bfile  /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig --exclude QCStep6A-merge.missnp --make-bed --out QCStep6B
+
+#6C 
+plink --bfile ../qcstep5/RSidbfiles4merge --bmerge QCStep6B.bed QCStep6B.bim QCStep6B.fam --make-bed --out QCStep6C
+
+#6D
+plink --bfile QCStep6C --geno 0.01 --maf 0.05 --chr 1-22 --make-bed --out QCStep6D
+
+#6E
+plink --bfile QCStep6D --indep-pairwise 50 5 0.3 --recode --out QCStep6E
+
+awk '{print $1,$2,$3,$4,$5,1}' QCStep6D.fam > QCStep6E.fam
+
+perl /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep6/make_par_file.pl QCStep6E 0 > QCStep6F.par
+
+smartpca -p QCStep6F.par
+```
+
+```{r}
+hapmappopinfo<-read.table("/home/peter//AA_nonGAIN_SCZ/QCSteps/QCStep6/HAPMAP3_hg18/MyDirectory_pop_HM3_hg18_forPCA.txt")%>%select(V1,V3)
+colnames(hapmappopinfo) <- c("pop","IID")
+fam<-read.table("/home/peter/bipolar_disorder/QC/qcstep6/QCStep6E.fam",header =F)%>%select(V1,V2)
+colnames(fam) <- c("FID","IID")
+pcs<-read.table("/home/peter/bipolar_disorder/QC/qcstep6/QCStep6E.evec",header =F)
+eval<-read.table("/home/peter/bipolar_disorder/QC/qcstep6/QCStep6E.eval")
+popinfo <- left_join(fam,hapmappopinfo,by="IID")
+popinfo <-mutate(popinfo, pop=ifelse(is.na(pop),'GWAS',as.character(pop)))
+pcdf <- data.frame(popinfo, pcs[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwas <- filter(pcdf,pop=='GWAS')
+hm3 <- filter(pcdf, grepl('NA',IID))
+table(popinfo$pop)
+
+
+
+screes<-round(eval/sum(eval),3)
+```
+
+```{r}
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+ggplot() + geom_point(data=gwas,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC1,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+ggplot() + geom_point(data=gwas,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3,aes(x=PC2,y=PC3,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+```
