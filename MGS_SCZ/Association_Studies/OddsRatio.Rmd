@@ -1,0 +1,59 @@
+---
+title: "Calculating Odds Ratio for SCZ"
+author: "Peter Fiorica"
+date: "10/2/2018"
+output: html_document
+---
+
+This rmd is used to generate a plot for the odds ratio of each gene 
+##Introductory information on Odds Ratio:
+https://stackoverflow.com/questions/41384075/r-calculate-and-interpret-odds-ratio-in-logistic-regression
+
+```{r}
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(oddsratio)
+```
+
+```{bash}
+awk '{print $1,$2,$6}' /home/peter/AA_nonGAIN_SCZ/QCSteps//QCStep2/QCStep2.fam > /home/peter/AA_nonGAIN_SCZ/PrediXcan/phenobinary.txt
+awk -v s=1 '{print $1, $2, $3-1}' /home/peter/AA_nonGAIN_SCZ/PrediXcan/phenobinary.txt > /home/peter/AA_nonGAIN_SCZ/PrediXcan/phenobinary1.txt
+```
+
+```{r}
+stomXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Stomach_imputed_europeans_tw_0.5_signif.db_predicted_expression.txt",header = T)
+
+pheno<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/phenobinary1.txt",header=F)
+
+HeartXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Heart_Atrial_Appendage_imputed_europeans_tw_0.5_signif.db_predicted_expression.txt",header = T)
+
+pancreasXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Pancreas_imputed_europeans_tw_0.5_signif.db_predicted_expression.txt",header = T)
+
+colonXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Colon_Sigmoid_imputed_europeans_tw_0.5_signif.db_predicted_expression.txt",header = T)
+
+pituitXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_gtex_v7_Pituitary_imputed_europeans_tw_0.5_signif.db_predicted_expression.txt",header = T)
+
+#GTEX v6 Odds Ratios and CI
+
+lymphXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000GTW_Cells_EBV-transformed_lymphocytes_0.5.db_predicted_expression.txt",header = T)
+
+lungXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000GTW_Lung_0.5.db_predicted_expression.txt",header = T)
+
+UterusXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000GTW_Uterus_0.5.db_predicted_expression.txt",header = T)
+
+StomachXpress<-fread("/home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000GTW_Stomach_0.5.db_predicted_expression.txt",header = T)
+
+
+GeneData<-data.table(ZBTB1v7=stomXpress$ENSG00000126804.9,PRMT7=HeartXpress$ENSG00000132600.12,RP11645C24.5panc=pancreasXpress$ENSG00000260306.1, RP11645C24.5colon = colonXpress$ENSG00000260306.1, PLEKHG3=pituitXpress$ENSG00000260306.1,SMPD3=lymphXpress$ENSG00000103056.7,CBFA2T2=lungXpress$ENSG00000078699.17, DHH=UterusXpress$ENSG00000139549.2, ZBTB1v6=StomachXpress$ENSG00000126804.9)
+
+fit_glm<-glm(pheno$V3 ~ ZBTB1v7 + PRMT7 + RP11645C24.5panc + RP11645C24.5colon + PLEKHG3 + SMPD3 + CBFA2T2 + DHH + ZBTB1v6, data = GeneData, family = "binomial")
+
+oddsratios <- or_glm(data = GeneData, model = fit_glm, list(ZBTB1v7= 1, PRMT7 = 1, RP11645C24.5panc = 1, RP11645C24.5colon =1 ,  PLEKHG3 = 1, SMPD3 = 1, CBFA2T2 = 1, DHH = 1, ZBTB1v6 = 1))
+
+colnames(oddsratios) <- c("gene","OR","CI_low2.5","CI_high97.5", "increment")
+```
+
+```{r}
+ggplot(oddsratios, aes(x=OR, y=gene)) + geom_vline(aes(xintercept = 1), size = .25, linetype = "dashed") +  geom_errorbarh(aes(xmax = CI_high97.5, xmin = CI_low2.5, height = .1), show.legend = FALSE, colour="darkviolet") + geom_point(size = 3.5, color = "navy") + theme_bw(20) + theme(panel.grid.minor = element_blank()) + ggtitle("Schizophrenia Odds Ratio") +xlab("Odds Ratio") + ylab("Gene")
+```

@@ -1,0 +1,106 @@
+---
+title: "MGS_Covariate_Files"
+author: "Peter Fiorica"
+date: "September 11, 2018"
+output: html_document
+---
+
+Here are notes for running PrediXcan with the data generated
+from 1000G imputation reference panel.
+
+Residual phenotypes have already been made from a logistic regression with the PCs for each person.
+```{bash}
+PrediXcan.py --assoc --linear --pred_exp /home/peter/PrediXcan/PrediXcanOutput2nodups/AA_TW_Cells_Transformed_fibroblasts_0.5.db_predicted_expression.txt --pheno /home/peter/PrediXcan/residualpheno.txt --output_prefix AA_testtissue
+```
+
+```{bash}
+for tiss in `cat tissuelist3`; do
+    echo $tiss
+    PrediXcan.py --predict --assoc --linear --dosages /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/1000G/ --dosages_prefix 1000Gpredixcandosage --samples /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/samples.txt --weights /home/wheelerlab3/Data/PrediXcan_db/GTEx-V6p-HapMap-2016-09-08/${tiss} --pheno /home/peter/AA_nonGAIN_SCZ/GWAS/residualphenoMGS.txt --output_prefix /home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/1000G_${tiss}
+done
+```
+
+I received the error:
+Traceback (most recent call last):
+  File "/usr/local/bin/PrediXcan.py", line 230, in <module>
+    main()
+  File "/usr/local/bin/PrediXcan.py", line 212, in main
+    transcription_matrix.save(PRED_EXP_FILE)
+  File "/usr/local/bin/PrediXcan.py", line 117, in save
+    outfile.write('FID\t' + 'IID\t' + '\t'.join(self.gene_list) + '\n') # Nb. this lists the names of rows, not of columns
+AttributeError: TranscriptionMatrix instance has no attribute 'gene_list'
+
+See https://github.com/hakyimlab/Training/issues/2
+
+#My variant IDs are not in rsID format.  PrediXcan needs to be in rs ID format to properly run
+
+```{bash}
+bcftools annotate --threads 40 -a /home/angela/px_his_chol/SGDP_filtered/anno/ALL_20180423.vcf.gz -c CHROM,POS,ID 
+#This is the command Angela recommended
+#This issue with running this command is that it would require me to go back to the uMich output files
+#I would then have to refilter the files and convert to PrediXcan format
+```
+
+```{bash}
+plink --bfile /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFiltered/1000GFilteredPlink --update-name /home/angela/px_his_chol/SGDP_filtered/anno/All_20180423_no_dups.txt --make-bed --out 1000GrsFiltered
+12780487-12775938
+#4549 were not updated
+```
+
+Now, this file must be converted back to PrediXcan dosages
+
+```{bash}
+pwd
+/home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/1000G
+rm *
+#deleted old predixcan dosages
+python plinktodosages4predixcan.py --bfile /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFiltered/1000GrsFiltered --out /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/1000G/1000GdosagesChr
+```
+
+Do the same commands to HRC and CAAPA
+```{bash}
+plink --bfile CAAPAFilteredplink --update-name /home/angela/px_his_chol/SGDP_filtered/anno/All_20180423_no_dups.txt --make-bed --out CAAPArsFiltered
+
+python plinktodosages4predixcan.py --bfile /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/CAAPA//UMichFiltered/CAAPArsFiltered --out /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/CAAPA/CAAPAdosagesChr
+
+plink --bfile HRCFilteredPlink --update-name /home/angela/px_his_chol/SGDP_filtered/anno/All_20180423_no_dups.txt --make-bed --out HRCrsFiltered
+
+python plinktodosages4predixcan.py --bfile /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/HRC/UMichHRC/UMichFiltered/HRCrsFiltered --out /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/HRC/HRCdosagesChr
+```
+
+The plink files were converted to dosages for CAAPA and HRC, but not for the 1000G dataset.  Something may have happened when I removed the previous files during the python script.
+```{bash}
+nohup python plinktodosages4predixcan.py --bfile /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFiltered/1000GrsFiltered --out /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/1000G/1000GdosagesChr &> plink2dos1000G.out
+```
+
+```{bash}
+for tiss in `cat tissuelist3`; do
+    echo $tiss
+    PrediXcan.py --predict --assoc --linear --dosages /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/CAAPA/ --dosages_prefix CAAPApredixcandosage --samples /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/samples.txt --weights /home/wheelerlab3/Data/PrediXcan_db/GTEx-V6p-HapMap-2016-09-08/${tiss} --pheno /home/peter/AA_nonGAIN_SCZ/GWAS/residualphenoMGS.txt --output_prefix /home/peter/AA_nonGAIN_SCZ/PrediXcan/output/CAAPA/CAAPA_${tiss}
+done
+```
+
+```{bash}
+nohup bash run_prediXcan.sh &> CAAPApredixcan.out
+```
+I ran this command for all of the different imputation panels, 
+and they all yielded the same significantly associated genes: 
+SMPD3, ZBTB1, DHH, and a gene that did not match my gene list.
+I looked up the gene to be CBFA2T2 (core-binding factor, runt domain, alpha subunit 2)
+  This gene was not significantly associated SCZ with the Gene2Pheno UK biobank, but
+  It was signigicantly associated with SCZ in the MetaXcan Association results in Skeletal Muscle
+
+Dr. Wheeler Recommended I used the most updated GTEx data for PrediXcan
+
+```{bash}
+for tiss in `cat /home/peter/PrediXcan/tissuelistV7`; do
+    echo $tiss
+    PrediXcan.py --predict --assoc --linear --dosages /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/1000G/ --dosages_prefix 1000GdosagesChr --samples /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/samples.txt --weights /home/wheelerlab3/Data/PrediXcan_db/GTEx-V7_HapMap-2017-11-29/${tiss} --pheno /home/peter/AA_nonGAIN_SCZ/GWAS/residualphenoMGS.txt --output_prefix /home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/v7_GTEx/1000G_${tiss}
+done
+```
+
+
+```{bash}
+#with Brain Predictors
+PrediXcan.py --predict --assoc --linear --dosages /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/1000G/ --dosages_prefix 1000GdosagesChr --samples /home/peter/AA_nonGAIN_SCZ/PrediXcan/dosages/samples.txt --weights DLPFC_newMetax.db --output_prefix /home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/Brain/1000G --pheno /home/peter/AA_nonGAIN_SCZ/GWAS/residualphenoMGS.txt
+```

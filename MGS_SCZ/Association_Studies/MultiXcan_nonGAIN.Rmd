@@ -1,0 +1,19 @@
+---
+title: "MultiXcan nonGAIN"
+author: "Peter Fiorica"
+date: "10/3/2018"
+output: html_document
+---
+
+```{bash}
+python MulTiXcan.py --expression_folder /home/peter/AA_nonGAIN_SCZ/PrediXcan/output/1000G/ --expression_pattern "1000GTW_(.*)_0.5.db_predicted_expression.txt" --input_phenos_file /home/peter/AA_nonGAIN_SCZ/PrediXcan/titleresidualphenoMGS.txt  --input_phenos_column Pheno --mode linear --output /home/peter/AA_nonGAIN_SCZ/MulTiXcanOutputnonGAIN
+```
+
+```{r}
+multixcanresults<-fread("/home/peter/AA_nonGAIN_SCZ/MulTiXcanOutputnonGAIN",header = T)
+multixcanresults1 <- mutate(multixcanresults,bonf_adjusted_p=p.adjust(multixcanresults$pvalue, method = "bonferroni"))
+significant <- subset(multixcanresults1, bonf_adjusted_p <= threshold)
+significantresults<-fread("/home/peter/MulTiXcan/significant.txt",header = T)
+significantresults <- bind_rows(significantresults, significant)
+ResultsWNames<-left_join(significantresults,genenames, by=c("gene"))
+```
