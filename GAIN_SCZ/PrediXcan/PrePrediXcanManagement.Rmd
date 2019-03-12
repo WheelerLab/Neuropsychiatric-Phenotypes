@@ -25,7 +25,7 @@ write.table(file,file="/home/peter/PrediXcan/pheno.txt",sep="\t",row.names = FAL
 
 
 The next script can be found in /home/peter/scripts/predixcan_script.sh.  Qsub has not been working for my PrediXcan scripts, so that may be worth noting for future reference. The PrediXcan script is the following:
-```{}
+```{r}
 for tiss in `cat tissuelist2`; do
     echo $tiss
     PrediXcan.py --predict --assoc --logistic --dosages /home/peter/uMichiganFiles/UMich_dosages/ --dosages_prefix chr --samples /home/peter/uMichiganFiles/UMich_dosages/samples.txt --weights /home/wheelerlab3/Data/PrediXcan_db/GTEx-V6p-HapMap-2016-09-08/${tiss} --pheno pheno.txt --output_prefix /home/peter/PrediXcan/PrediXcanOutput/AA_${tiss}
