@@ -1,4 +1,4 @@
-#pull gene names and R2 from MESA db files
+#pull rsids from GTEx V7 db files
 
 import sqlite3
 import pandas
