@@ -1,0 +1,106 @@
+---
+title: "GWAS Notes for MGS data"
+author: "Peter Fiorica"
+date: "9/6/2018"
+output: html_document
+---
+
+```{bash}
+#This conducts PCA on the full set of 2256 without hapmap individuals to use the PCs as covariates for PCA.
+plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2 --pca 10 --out PCAforCovariates
+
+#Something to ask Dr. Wheeler: since I have the imputed files in bed/bim/fam format, should I use them for PCA to generate covariates?
+```
+
+```{r}
+library(dplyr)
+library(data.table)
+eigenvec<-fread("/home/peter/AA_nonGAIN_SCZ/GWAS/PCAforCovariates.eigenvec", header=F)
+pheno<-fread("/home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2.fam",header=F)
+fit<-glm(pheno$V6~eigenvec$V3 + eigenvec$V4 + eigenvec$V5 + eigenvec$V6 + eigenvec$V7 + eigenvec$V8 + eigenvec$V9 + eigenvec$V10 + eigenvec$V11 + eigenvec$V12)
+
+newphenotype<-fit$residuals
+residualphenos<-data.table(x=pheno$V1,y=pheno$V2,z=newphenotype)
+colnames(residualphenos)<-c("FID","IID","Pheno")
+write.table(residualphenos,file="/home/peter/AA_nonGAIN_SCZ/GWAS/residualphenoMGS.txt",sep = " ", quote = FALSE, col.names = FALSE, row.names = FALSE)
+```
+
+```{bash}
+#before executing this, I changed part of the script so that plink1.9 is the default instead of plink2
+python plinktodosages4predixcan.py --bfile /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/CAAPA/UMichFiltered/CAAPAFilteredplink --out CAAPApredixcandosages1
+
+#I went back to edit the python script so it runs in plink 2 (slightly faster).
+#The issue was that plink2 outputs different frequency files than plink.
+python /home/peter/AA_nonGAIN_SCZ/plinktodosages4predixcan.py --bfile /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/UMichFiltered/1000GFilteredPlink --out 1000Gpredixcandosage
+
+python /home/peter/AA_nonGAIN_SCZ/plinktodosages4predixcan.py --bfile /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/HRC/UMichHRC/UMichFiltered/HRCFilteredPlink --out HRCpredixcandosage
+
+#These scripts take a long time to run...
+#I am not sure how much quicker it is to run plink then a python script compared to just the python script...
+```
+
+```{bash}
+plink --bfile 1000GrsFiltered --recode --out /home/peter/AA_nonGAIN_SCZ/GWAS/1000GFiltered4GWAS
+```
+
+```{bash}
+plink --fam /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2.fam --dosage /home/peter/AA_nonGAIN_SCZ/GWAS/dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/AA_nonGAIN_SCZ/GWAS/1000GFiltered4GWAS.map --out /home/peter/AA_nonGAIN_SCZ/GWAS/nonGAINSCZnovar
+##There are no covariates used in this association test.
+```
+
+```{r}
+GWAS<-fread("/home/peter/AA_nonGAIN_SCZ/GWAS/nonGAINSCZnovar.assoc.dosage",header =T)
+NovarTop<-GWAS[order(P,decreasing=FALSE)]
+NovarTop<-NovarTop[1:25]
+```
+
+```{bash}
+plink --fam /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2.fam --covar PCAforCovariates.eigenvec --dosage /home/peter/AA_nonGAIN_SCZ/GWAS/dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/AA_nonGAIN_SCZ/GWAS/1000GFiltered4GWAS.map --out /home/peter/AA_nonGAIN_SCZ/GWAS/nonGAINSCZ
+
+##There are covariates used in this association test.
+```
+
+```{r}
+GWAS2<-fread("/home/peter/AA_nonGAIN_SCZ/GWAS/nonGAINSCZ.assoc.dosage",header =T)
+
+CovarTop<-GWAS2[order(P,decreasing=FALSE)]
+CovarTop<-CovarTop[1:25]
+```
+
+For HRC and CAAPA:
+```{bash}
+plink --bfile HRCrsFiltered --recode --out /home/peter/AA_nonGAIN_SCZ/GWAS/HRCFiltered4GWAS
+#Above is for HRC, and below is for CAAPA
+plink --bfile CAAPArsFiltered --recode --out /home/peter/AA_nonGAIN_SCZ/GWAS/CAAPAFiltered4GWAS
+
+plink --fam /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2.fam --covar PCAforCovariates.eigenvec --dosage /home/peter/AA_nonGAIN_SCZ/GWAS/dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/AA_nonGAIN_SCZ/GWAS/HRCFiltered4GWAS.map --out /home/peter/AA_nonGAIN_SCZ/GWAS/HRCnonGAINSCZ
+
+plink --fam /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2.fam --covar PCAforCovariates.eigenvec --dosage /home/peter/AA_nonGAIN_SCZ/GWAS/dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/AA_nonGAIN_SCZ/GWAS/CAAPAFiltered4GWAS.map --out /home/peter/AA_nonGAIN_SCZ/GWAS/CAAPAnonGAINSCZ
+
+#BELOW IS NO COVARIATE:
+plink --fam /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2.fam --dosage /home/peter/AA_nonGAIN_SCZ/GWAS/dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/AA_nonGAIN_SCZ/GWAS/HRCFiltered4GWAS.map --out /home/peter/AA_nonGAIN_SCZ/GWAS/HRCnonGAINSCZnovar
+
+plink --fam /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep2/QCStep2.fam --dosage /home/peter/AA_nonGAIN_SCZ/GWAS/dosagelist.txt list noheader skip0=1 skip1=1 skip2=1 format=1 --map /home/peter/AA_nonGAIN_SCZ/GWAS/CAAPAFiltered4GWAS.map --out /home/peter/AA_nonGAIN_SCZ/GWAS/CAAPAnonGAINSCZnovar
+```
+
+```{r}
+#HRC
+GWAS_HRC<-fread("/home/peter/AA_nonGAIN_SCZ/GWAS/HRCnonGAINSCZ.assoc.dosage",header =T)
+CovarTop_HRC<-GWAS_HRC[order(P,decreasing=FALSE)]
+CovarTop_HRC<-CovarTop_HRC[1:25]
+
+GWAS2_HRC<-fread("/home/peter/AA_nonGAIN_SCZ/GWAS/HRCnonGAINSCZnovar.assoc.dosage",header =T)
+NovarTop_HRC<-GWAS2_HRC[order(P,decreasing=FALSE)]
+NovarTop_HRC<-NovarTop_HRC[1:25]
+```
+
+```{r}
+#CAAPA
+GWAS_CAAPA<-fread("/home/peter/AA_nonGAIN_SCZ/GWAS/CAAPAnonGAINSCZ.assoc.dosage",header =T)
+CovarTop_CAAPA<-GWAS_CAAPA[order(P,decreasing=FALSE)]
+CovarTop_CAAPA<-CovarTop_CAAPA[1:25]
+
+GWAS2_CAAPA<-fread("/home/peter/AA_nonGAIN_SCZ/GWAS/CAAPAnonGAINSCZnovar.assoc.dosage",header =T)
+NovarTop_CAAPA<-GWAS2_CAAPA[order(P,decreasing=FALSE)]
+NovarTop_CAAPA<-NovarTop_CAAPA[1:25]
+```
