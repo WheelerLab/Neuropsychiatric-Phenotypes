@@ -17,12 +17,13 @@ G2Phits<-ggplot(gene2pheno)+
   geom_raster() +
   scale_fill_gradient2(high="royalblue3", mid="aliceblue",name = "-log(P)" ) + 
   theme_bw() +
-  ggtitle("A")+
+  ggtitle("B")+
   theme(panel.grid.major.y =element_blank(),
         axis.title= element_text(size=14,face="bold"),
         axis.text.x = element_text(angle=90, hjust = 1, vjust=0.05),
         plot.title=element_text(size = 18, face="bold")
-        )+  
+        )+   facet_grid(. ~ "Gene2Pheno Replication") + 
+  theme(strip.text.x = element_text(size = 15))+
   ylab("Gene") +
   xlab("Tissue")
 
@@ -32,19 +33,20 @@ GTex6BD<-fread("z://bipolar_disorder/predixcan/BPgtex6greenflags.txt", header =T
 SCZgenes<-subset(GTex6SCZ, GTex6SCZ$genename== "ZBTB1" | GTex6SCZ$genename== "SMPD3"| GTex6SCZ$genename== "SH3PXD2B"|  GTex6SCZ$genename== "PRMT7"| GTex6SCZ$genename=="FLVCR1")
 BDgene<- subset(GTex6BD, GTex6BD$genename== "ZNF562")
 
-siggenes<-rbind(SCZgenes,BDgene, fill = F)
+siggenes<-rbind(SCZgenes,BDgene, fill = T)
 
 siggeneshits<-ggplot(siggenes)+
   aes(x = tissue, y = genename, fill = -log10(p))+
   geom_raster() +
   scale_fill_gradient2(high="royalblue3", mid="aliceblue",name = "-log(P)", limits=c(0,8.5), breaks=c(2,4,6,8)) + 
   theme_bw() +
-  ggtitle("B")+
+  ggtitle("A")+
   theme(panel.grid.major.y =element_blank(),
         axis.title= element_text(size=14,face="bold"),
         axis.text.x = element_text(angle=90, hjust = 1, vjust=.05),
-        plot.title=element_text(size = 18, face="bold")
-  )+  
+        plot.title=element_text(size = 14, face="bold")
+  )+   facet_grid(. ~ "PrediXcan Results Across All Tissues") + 
+  theme(strip.text.x = element_text(size = 15))+
   ylab("Gene") +
   xlab("Tissue")
 
@@ -53,6 +55,6 @@ grid.arrange(grobs= list(G2Phits + theme(legend.position="none"),siggeneshits + 
              nrow=1,
              top=textGrob("Comparison of Gene2Pheno Replication Results", gp=gpar(fontsize=20, fontface="bold")))
 #Top-Bottom Figure
-grid.arrange(grobs= list(G2Phits,siggeneshits),
+grid.arrange(grobs= list(siggeneshits, G2Phits),
              nrow=2,
              top=textGrob("Comparison of Gene2Pheno Replication Results", gp=gpar(fontsize=24, fontface="bold")))
