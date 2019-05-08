@@ -1,4 +1,4 @@
-# GWAS Quality Control for MGS GAIN data
+# GWAS Quality Control for MGS GAIN data (In progress)
 
 ### Step 0: Merging the nonGAIN dataset with the GAIN dataset, setting heterozygous haploid genotypes as missing, performing sex check
 ```
