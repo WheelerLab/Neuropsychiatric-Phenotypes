@@ -36,7 +36,9 @@ plink --bfile /home/peter/AA_nonGAIN_SCZ/QCSteps/QCStep0/NoHH/QCStep0NoHH --geno
 ```
 plink --bfile ../QCStep2/QCStep2 --missing --out QCStep3
 ```
+
 #### Step 3A: Plotting Filtered Genotyping Rate
+```
 #These steps are completed in R
 newimiss<-fread(my.dir%&%"QCStep3/QCStep3.imiss")
 hist(newimiss$F_MISS)
@@ -45,7 +47,7 @@ hist(newlmiss$F_MISS)
 dim(newlmiss)[1]
 ```
 
-### Step 4: Filtering by 
+### Step 4: Filtering by HWE
 ```
 plink --bfile ../QCStep2/QCStep2 --hardy --out QCStep4
 ```
