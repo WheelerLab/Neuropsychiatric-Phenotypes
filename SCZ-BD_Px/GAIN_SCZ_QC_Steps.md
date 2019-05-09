@@ -1,4 +1,4 @@
-# GWAS Quality Control for MGS GAIN data (In progress)
+# GWAS Quality Control for MGS GAIN data
 
 ### Step 0: Merging the nonGAIN dataset with the GAIN dataset, setting heterozygous haploid genotypes as missing, performing sex check
 ```
@@ -173,5 +173,82 @@ dim(hetoutliers)
 plink --bfile ../QCStep5D/QCStep5D --remove ../QCStep5C/HetOutliers.txt --make-bed --out QCStep5F
 ```
 
+## Principal Component Analysis
+### Step 6: Merge with HapMap Data
+Dependent on the genotyping platoform used (i.e. Affymatrix, Illumina, etc.), the SNP identifiers are recorded differently (rsID, SNP_A-#, AFFY-SNP-#). The hapmap individuals are recorded by rsID, and they share different positions from SNP_A-#.  This means that we have to change the MGS data identifiers to rsID.
 
+The next steps are completed in R
+```
+TotalSNPs<-fread("Z://AA_GAIN_SCZ/summarystatistics.txt",header=T)
+#The summary statistics from the dbGaP data containing information that contains an rsID and position for each SNP_A-#
+SelectSNPs<-dplyr::select(TotalSNPs,"MarkerAccession","ChrID", "ChrPosition","SubmittedSNPID")
+#Isolates the positions we need to merge with a .bim file
+bim<-fread("Z://AA_nonGAIN_SCZ/QCSteps/QCStep5/QCStep5F/QCStep5F.bim", header = F)
+#Reading in the last .bim from QC
+mergedbim <- left_join(bim, SelectSNPs, by = c("V1" = "ChrID", "V4" = "ChrPosition"))
+mergedbim2 <- mutate(mergedbim,snp=ifelse(is.na(`Marker accession`),V2, `Marker accession`))
+newbim <- dplyr::select(mergedbim2,V1,snp,V3,V4,V5,V6)
+filetest2<-newbim[!duplicated.data.frame(newbim),]
 
+write.table(filetest2,"Z:/AA_nonGAIN_SCZ/QCSteps/QCStep5/QCStep5F/newbim.bim",quote=F, sep="\t",row.names=F,col.names=F)
+```
+From here, we return to commandline to synchronize and merge with plink
+#### Step 6A: Synchronize PLINK bfiles
+```
+plink --fam QCStep5F.fam --bed QCStep5F.bed --bim newbim.bim --make-bed --out newbfiles
+```
+
+#### Step 6B: Merge GWAS data with HapMap bfiles
+Note that the bfiles are stil in Hg18 build.
+Additionally, this attempt will fail, but it will output a .missnp file.
+```
+plink --bfile ../newbfiles --bmerge ../HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.bed ../HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.bim ../HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig.fam --make-bed --out QCStep6A
+```
+
+#### Step 6C: Exclude missSNPs
+```
+plink  --bfile ../HAPMAP3_hg18/HM3_ASN_CEU_YRI_Unrelated_hg18_noAmbig --exclude ../QCStep6A/QCStep6A-merge.missnp --make-bed --out QCStep6B
+```
+
+#### Step 6D: Merge attempt 2
+```
+plink --bfile ../newbfiles --bmerge ../QCStep6B/QCStep6B.bed ../QCStep6B/QCStep6B.bim ../QCStep6B/QCStep6B.fam --make-bed --out QCStep6C
+```
+
+#### Step 6E: Filter by Minor Allele Frequency and Genotyping Rate
+```
+plink --bfile ../QCStep6C/QCStep6C --geno 0.01 --maf 0.05 --chr 1-22 --make-bed --out QCStep6D
+```
+
+#### Step 6F: IBD Pruning with HapMap data
+```
+plink --bfile ../QCStep6D/QCStep6D --indep-pairwise 50 5 0.3 --recode --out QCStep6E
+awk '{print $1,$2,$3,$4,$5,1}' ../QCStep6D/QCStep6D.fam > QCStep6E.fam
+```
+
+#### Step 6G: Running principal component analysis with smartpca or PLINK
+```
+perl ../make_par_file.pl ../QCStep6E/QCStep6E 0 > QCStep6F.par
+smartpca -p QCStep6F.par
+#I also want to see how plinks PCA compares to EIGENSOFT pca,
+#So I also ran the next command:
+plink --bfile QCStep6D --pca --out QCStep6D_PCA
+#PLINK will output eigenvectors and eigenvalues that can be used for the next steps, but I chose to continue using the smartpca ourput
+```
+
+### Step 7: Plotting PCA data
+The next steps are in R
+```
+pcsgenonox0.01<-read.table(my.dir%&%"QCStep6/QCStep6E/QCStep6E.evec",skip=1)
+pcdfgenonox0.01 <- data.frame(popinfo, pcsgenonox0.01[,2:11]) %>% rename (PC1=V2,PC2=V3,PC3=V4,PC4=V5,PC5=V6,PC6=V7,PC7=V8,PC8=V9,PC9=V10,PC10=V11)
+gwasgenonox0.01 <- filter(pcdfgenonox0.01,pop=='GWAS')
+hm3genonox0.01 <- filter(pcdfgenonox0.01, grepl('NA',IID))
+evalgenonox0.01<-scan(my.dir%&%"QCStep6/QCStep6E/QCStep6E.eval")[1:10]
+round(eval/sum(evalgenonox0.01))#Calculate the percent explained by each PC
+
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC1,y=PC3,col=pop,shape=pop))+geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+ggplot() + geom_point(data=gwasgenonox0.01,aes(x=PC2,y=PC3,col=pop,shape=pop))+geom_point(data=hm3genonox0.01,aes(x=PC1,y=PC2,col=pop,shape=pop))+ theme_bw() + scale_colour_brewer(palette="Set1")
+```
+
+The groups should cluster into four distinct populations for the plot of PC1 vs. PC2  Three small populations should be easily identifiable: YRI, CEU, and ASN.  The GWAS population should represent a band between YRI and CEU since African American individuals are genetically admixed.
