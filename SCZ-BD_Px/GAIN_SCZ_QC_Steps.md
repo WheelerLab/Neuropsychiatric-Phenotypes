@@ -94,3 +94,84 @@ others <- ibd[a==FALSE,]
 toremove<-filter(others,PI_HAT>=0.2)
 write.table(toremove,my.dir%&%"QCStep5/QCStep5B/Relate.to.remove.txt",quote=FALSE, row.names = FALSE)
 ```
+#### Step 5B: Extracting individuals with excess heterozygosity
+```
+plink --bfile ../../QCStep2/QCStep2 --extract ../QCStep5A/QCStep5a.prune.in --het --out QCStep5c
+```
+The next steps are completed in R
+```
+HET<-fread(my.dir%&%"QCStep5/QCStep5C/QCStep5c.het",header =T)
+h=HET$"N(NM)"-HET$"O(HOM)"/HET$"N(NM)"
+oldpar = par(mfrow=c(1,2))
+hist(h,50)
+hist(HET$F,50)
+summary(HET$F)
+abline(v=mean(HET$F)+6*sd(HET$F),col="red")
+abline(v=mean(HET$F)-6*sd(HET$F),col="red")
+
+sortHET <- HET[order(HET$F),]
+outliers <- data.table()
+
+for(i in 1:length(sortHET$F)){
+  if(sortHET[i,6] > (mean(sortHET$F)+3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+  if(sortHET[i,6] < (mean(sortHET$F)-3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+}
+
+hetoutliers <- select(outliers, FID, IID)
+dim(hetoutliers) #This tells us how many outliers there are.
+
+write.table(allexclude2, file = my.dir%&%"QCStep5/QCStep5C/HetOutliers.txt", quote = F, col.names = T, row.names = F)
+```
+
+#### Step 5C: Removing individuals with excess heterozygosity or relatedness
+```
+plink --bfile ../../QCStep2/QCStep2 --extract ../QCStep5A/QCStep5a.prune.in --remove ../QCStep5B/Relate.to.remove.txt --genome --out QCStep5D
+plink --bfile ../../QCStep2/QCStep2 --extract ../QCStep5A/QCStep5a.prune.in --remove ../QCStep5B/Relate.to.remove.txt --make-bed --out QCStep5D
+```
+The next steps are completed in R
+```
+IBD<-fread(my.dir %&% "QCStep5/QCStep5D/QCStep5D.genome",header=T)
+ggplot(data = IBD, aes(x=Z0,y=Z1))+geom_point(alpha=1/4)+theme_bw()
+```
+
+#### Step 5D: Second Heterozygosity Check
+```
+plink --bfile ../QCStep5D/QCStep5D  --het --extract ../QCStep5A/QCStep5a.prune.in --remove ../QCStep5B/Relate.to.remove.txt --out QCStep5E
+```
+The next steps are completed in R...We really just repeat the steps from 5B
+```
+HET<-fread(my.dir%&%"QCStep5/QCStep5E/QCStep5E.het",header =T)
+h=HET$"N(NM)"-HET$"O(HOM)"/HET$"N(NM)"
+oldpar = par(mfrow=c(1,2))
+hist(h,50)
+hist(HET$F,50)
+summary(HET$F)
+abline(v=mean(HET$F)+6*sd(HET$F),col="red")
+abline(v=mean(HET$F)-6*sd(HET$F),col="red")
+
+sortHET <- HET[order(HET$F),]
+outliers <- data.table()
+
+for(i in 1:length(sortHET$F)){
+  if(sortHET[i,6] > (mean(sortHET$F)+3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+  if(sortHET[i,6] < (mean(sortHET$F)-3*sd(sortHET$F))){
+    outliers <- rbind(outliers, sortHET[i,])
+  }
+}
+
+hetoutliers <- select(outliers, FID, IID)
+dim(hetoutliers)
+```
+#### Step 5E: Remove Heterozygosity Outliers
+```
+plink --bfile ../QCStep5D/QCStep5D --remove ../QCStep5C/HetOutliers.txt --make-bed --out QCStep5F
+```
+
+
+
