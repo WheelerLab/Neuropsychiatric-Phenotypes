@@ -1,5 +1,5 @@
 # Filtering Imputation Output
-Once imputation has been ran, we need to filter the SNPs for r<sup>2</sup> \> 0.8 and MAF \> .05.  Below are the generic PLINK commands than are ran to convert one chromosome file from the imputation server to PLINK bfiles.
+Once imputation has been ran, we need to filter the SNPs for r<sup>2</sup> \> 0.8 and MAF \> .01.  Below are the generic PLINK commands than are ran to convert one chromosome file from the imputation server to PLINK bfiles.
 
 ```
 plink --vcf /home/peter/AA_nonGAIN_SCZ/Imputation/UMichResults/1000G/UMich1000G/chr22.dose.vcf.gz --biallelic-only --make-bed --out 1000Gc22biallelic
