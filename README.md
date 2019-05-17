@@ -8,4 +8,4 @@ Additional notes that can be found in this folder contain the comparison of gene
 ## GAIN_BP
 Files in this folder contain the notes regarding the QC, Imputation, GWAS, and Predixcan application to all of the African American individual data from the GAIN bipolar disorder dataset.  Considering the similarity of methods used to compare gene imputation panels in reference to phenotypic association, some imputation panel comparisons may be found in MGS_SCZ as well.
 ## SCZ-BD_Px
-This folder contains the scripts and notes used to generate the figures in the manuscript: "Transcriptome association studies for schizophrenia and bipolar disorder in African Americans"
+This folder contains the scripts and notes used to generate the figures in the manuscript: "Transcriptome association studies identify genes associated with schizophrenia and bipolar disorder in African Americans"
