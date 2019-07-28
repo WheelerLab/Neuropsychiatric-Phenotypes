@@ -1,6 +1,7 @@
 # PrediXcan Results
 Both sets of results follow similar formats with respect to headers:
 bipolar_disorder_gtex7_all_ashr_results.txt.gz & gtex7_all_ashr_results.txt.gz
+
 `gene`: The gene labeled by Ensembl ID
 
 `beta`: Effect size
