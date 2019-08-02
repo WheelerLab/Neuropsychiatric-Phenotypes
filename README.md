@@ -2,7 +2,7 @@
 Notes for the application of PrediXcan to neuropsychiatric phenotypes.
 
 ## SCZ-BD_Px
-This folder contains the scripts and notes used to generate the figures in the manuscript: "Transcriptome association studies of neuropsychiatric traits in African Americans implicates PRMT7 in schizophrenia"
+This folder contains the scripts and notes used to generate the figures in the manuscript: "[Transcriptome association studies of neuropsychiatric traits in African Americans implicates PRMT7 in schizophrenia](https://www.biorxiv.org/content/10.1101/721449v1?rss=1)"
 ### [PrediXcan Results](https://github.com/WheelerLab/Neuropsychiatric-Phenotypes/tree/master/SCZ-BD_Px/PrediXcan_Results)
 GWAS and PrediXcan summary statistics can be found within this folder.  These data include both p-values and lsfr results for PrediXcan associations.
 ### Figures & Plots
